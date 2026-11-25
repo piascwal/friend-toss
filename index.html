@@ -4,17 +4,25 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
     />
     <meta name="theme-color" content="#1a1030" />
+    <meta name="description" content="Lance tes potes. Dégage les relous." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Friend Toss" />
     <title>Friend Toss</title>
-    <link rel="icon" href="assets/characters/jbg/portrait.webp" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="icons/favicon.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   </head>
   <body>
     <canvas id="game"></canvas>
     <div id="hud"></div>
     <div id="screen" class="screen" hidden></div>
     <div id="rotate">
+      <div class="rotate-phone"></div>
       <p>Tourne ton téléphone<br />pour lancer tes potes</p>
     </div>
     <script type="module" src="/src/main.ts"></script>

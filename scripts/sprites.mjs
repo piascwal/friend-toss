@@ -62,3 +62,8 @@ console.log(
     `${props.props} objets (${props.copied}), ${npcs.npcs} ennemis (${npcs.copied})`,
 );
 if (localIndex < 0) rmSync(bank, { recursive: true, force: true });
+
+// icônes de l'application, à partir du portrait du lanceur
+const { makeIcons } = await import('./icons.mjs');
+await makeIcons();
+console.log('Icônes de l’application : public/icons/');

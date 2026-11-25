@@ -5,6 +5,7 @@ import { loadCharacters, loadNpcs } from './assets';
 import { ALL_LEVELS, LEVEL_BY_ID, UNLOCKS } from './data/levels';
 import { Game, preloadLevel, type Result } from './game';
 import { FRIENDS, THROWER } from './sim/defs';
+import { autoFullscreen, isPortrait, setupPwa } from './pwa';
 import { loadProgress, saveProgress, type Progress } from './save';
 import {
   guideScreen,
@@ -52,25 +53,28 @@ async function openLevel(id: string) {
   );
 }
 
+let pause = () => {};
+
 function play(id: string) {
   stopGame();
   hideScreen();
   const level = LEVEL_BY_ID[id]!;
   document.body.classList.add('playing');
+  pause = () => {
+    if (!game) return;
+    game.setPaused(true);
+    pauseScreen(
+      () => {
+        hideScreen();
+        game?.setPaused(false);
+      },
+      () => play(id),
+      () => showMap(id),
+    );
+  };
   game = new Game(canvas, hud, level, level.world, {
     end: (r) => finish(id, r),
-    pause: () => {
-      if (!game) return;
-      game.setPaused(true);
-      pauseScreen(
-        () => {
-          hideScreen();
-          game?.setPaused(false);
-        },
-        () => play(id),
-        () => showMap(id),
-      );
-    },
+    pause: () => pause(),
     restart: () => play(id),
   });
 }
@@ -107,13 +111,21 @@ async function boot() {
     loadNpcs(),
     document.fonts?.load('16px "Press Start 2P"'),
   ]);
-  titleScreen(() => showMap());
+  titleScreen(() => {
+    // geste du joueur : on peut passer en plein écran et bloquer le paysage
+    autoFullscreen();
+    showMap();
+  });
   // accès direct à un niveau : #1-3
   const hash = location.hash.slice(1);
   if (LEVEL_BY_ID[hash]) void openLevel(hash);
 }
 
-window.addEventListener('resize', () => game || canvas.getContext('2d'));
+setupPwa();
+// téléphone remis en portrait pendant une partie : pause (l'écran « tourne ton téléphone » s'affiche)
+matchMedia('(orientation: portrait)').addEventListener('change', () => {
+  if (isPortrait() && game && document.getElementById('screen')!.hidden) pause();
+});
 void boot();
 
 // outils de test dans la console

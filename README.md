@@ -14,6 +14,16 @@ personnages, objets de décor, ennemis et boss.
 - **Pause** : Échap ou P. **Recommencer** : R.
 - Le score donne 1 à 3 étoiles ; chaque ami non utilisé rapporte 10 000 points.
 
+## Sur mobile
+
+Le jeu se joue en **paysage, plein écran, sans aucun défilement** : en portrait, un écran demande de tourner
+le téléphone. Le plein écran (et le blocage en paysage, quand le navigateur le permet) se déclenche au premier
+« JOUER » ; un bouton le rebascule.
+
+Il s'**installe comme une application** (bouton 📲, ou menu du navigateur « Installer » / « Ajouter à
+l'écran d'accueil » ; sur iPhone : Partager → Sur l'écran d'accueil). Une fois installé, il s'ouvre en plein
+écran et marche hors ligne pour les niveaux déjà chargés.
+
 ## La bande
 
 | Ami      | Pouvoir          | Ce qu'il fait                                                      | Libéré en |
@@ -65,7 +75,9 @@ efface la progression.
 ```
 needs.json             besoins du jeu dans la banque (poses, objets, ennemis) : `npm run needs -- ../sprite-bank`
 sprites.json           version de la banque suivie (« v2 » = la plus récente des v2.x)
-scripts/sprites.mjs    télécharge la banque et copie les images demandées
+scripts/sprites.mjs    télécharge la banque, copie les images demandées et fait les icônes (scripts/icons.mjs)
+public/manifest.webmanifest, public/sw.js   application installable et hors ligne
+src/pwa.ts             plein écran, paysage, installation
 src/sim/               simulation sans navigateur : physique (planck), dégâts, pouvoirs, score
   defs.ts              matériaux, objets, relous, amis et pouvoirs
   level.ts             format d'un niveau et outil de construction (empiler, poutres, cabanes, tours)

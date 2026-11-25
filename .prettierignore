@@ -2,3 +2,4 @@ node_modules
 dist
 public/assets
 package-lock.json
+public/icons
