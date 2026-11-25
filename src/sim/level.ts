@@ -48,7 +48,35 @@ export interface LevelDef {
   stars?: [number, number];
 }
 
-/** Construit une structure pièce par pièce. Les y donnés sont toujours le bas de la pièce. */
+/** Épaisseur des poutres et poteaux (m) : des modules bien épais, façon jeu de construction. */
+export const T = 0.45;
+
+/** Matériau d'un module. */
+export type M = 'bois' | 'glace' | 'pierre' | 'metal';
+
+const BOX: Record<M, ObjKind> = {
+  bois: 'planche',
+  glace: 'planche-glace',
+  pierre: 'planche-pierre',
+  metal: 'planche-metal',
+};
+const BALL: Record<M, ObjKind> = {
+  bois: 'rond',
+  glace: 'rond-glace',
+  pierre: 'rond-pierre',
+  metal: 'rond-metal',
+};
+const WEDGE: Record<M, ObjKind> = {
+  bois: 'coin',
+  glace: 'coin-glace',
+  pierre: 'coin-pierre',
+  metal: 'coin-metal',
+};
+
+/**
+ * Construit une structure module par module. Les y donnés sont toujours le bas de la pièce ;
+ * les méthodes renvoient le haut de ce qu'elles posent, pour empiler facilement.
+ */
 export class Build {
   items: ItemDef[] = [];
   enemies: EnemyPlace[] = [];
@@ -59,57 +87,85 @@ export class Build {
     return this;
   }
 
-  /** Empile des objets les uns sur les autres ; renvoie le haut de la pile. */
-  stack(x: number, y: number, kinds: ObjKind[], heights: Partial<Record<ObjKind, number>> = {}): number {
+  /** Empile des objets de la banque les uns sur les autres. */
+  stack(x: number, y: number, kinds: ObjKind[]): number {
     let top = y;
     for (const k of kinds) {
       this.add(k, x, top);
-      top += heights[k] ?? HEIGHTS[k] ?? 1.2;
+      top += HEIGHTS[k] ?? 1.2;
     }
     return top;
   }
 
-  /** Poutre horizontale. */
-  beam(x: number, y: number, w: number, mat: Beam = 'planche', h = 0.3): number {
-    this.items.push({ k: mat, x, y, w, h });
+  /** Bloc rectangulaire (carré par défaut). */
+  block(x: number, y: number, m: M = 'bois', w = 1, h = w): number {
+    this.items.push({ k: BOX[m], x, y, w, h });
     return y + h;
   }
 
-  /** Poteau vertical. */
-  post(x: number, y: number, h: number, mat: Beam = 'planche', w = 0.3): number {
-    this.items.push({ k: mat, x, y, w, h });
+  /** Poutre horizontale épaisse. */
+  plank(x: number, y: number, w: number, m: M = 'bois', h = T): number {
+    return this.block(x, y, m, w, h);
+  }
+
+  /** Poteau vertical épais. */
+  pillar(x: number, y: number, h: number, m: M = 'bois', w = T): number {
+    return this.block(x, y, m, w, h);
+  }
+
+  /** Module rond (roue, boule, boulet). */
+  ball(x: number, y: number, m: M = 'bois', d = 1): number {
+    this.items.push({ k: BALL[m], x, y, w: d, h: d });
+    return y + d;
+  }
+
+  /** Toit triangulaire. */
+  roof(x: number, y: number, w = 1.2, m: M = 'bois', h = w * 0.6): number {
+    this.items.push({ k: WEDGE[m], x, y, w, h });
     return y + h;
   }
 
-  /** Cabane : deux poteaux et un toit. Renvoie le haut du toit. */
-  hut(x: number, y: number, w: number, h: number, mat: Beam = 'planche', roof: Beam = mat): number {
-    this.post(x - w / 2 + 0.15, y, h, mat);
-    this.post(x + w / 2 - 0.15, y, h, mat);
-    return this.beam(x, y + h, w + 0.3, roof);
+  /** Pièce : deux poteaux et un plafond. Intérieur libre : w − 2T de large, h de haut. */
+  room(x: number, y: number, w: number, h: number, m: M = 'bois', ceil: M = m): number {
+    this.pillar(x - w / 2 + T / 2, y, h, m);
+    this.pillar(x + w / 2 - T / 2, y, h, m);
+    return this.plank(x, y + h, w + 0.3, ceil);
   }
 
-  /** Tour de plusieurs étages de cabanes. */
-  tower(
-    x: number,
-    y: number,
-    floors: number,
-    w: number,
-    h: number,
-    mat: Beam = 'planche',
-    roof: Beam = mat,
-  ): number {
+  /** Rangée de pièces qui partagent leurs poteaux ; renvoie le haut du plafond. */
+  rooms(x0: number, y: number, n: number, w: number, h: number, m: M = 'bois', ceil: M = m): number {
+    for (let i = 0; i <= n; i++) this.pillar(x0 + i * (w - T) + T / 2, y, h, m);
+    const len = n * (w - T) + T;
+    return this.plank(x0 + len / 2, y + h, len + 0.3, ceil);
+  }
+
+  /** Tour de plusieurs étages de pièces. */
+  tower(x: number, y: number, floors: number, w: number, h: number, m: M = 'bois', ceil: M = m): number {
     let top = y;
-    for (let i = 0; i < floors; i++) top = this.hut(x, top, w, h, mat, roof);
+    for (let i = 0; i < floors; i++) top = this.room(x, top, w, h, m, ceil);
     return top;
   }
 
-  /** Pyramide d'objets carrés. */
-  pyramid(x: number, y: number, rows: number, k: ObjKind = 'caisse', size = HEIGHTS[k] ?? 1.2): number {
+  /** Mur de blocs carrés (cols × rows). */
+  wall(x0: number, y: number, cols: number, rows: number, m: M = 'bois', s = 1): number {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) this.block(x0 + c * s + s / 2, y + r * s, m, s);
+    return y + rows * s;
+  }
+
+  /** Pyramide de blocs carrés. */
+  pyramid(x: number, y: number, rows: number, m: M = 'bois', s = 1): number {
     for (let r = 0; r < rows; r++) {
       const n = rows - r;
-      for (let i = 0; i < n; i++) this.add(k, x + (i - (n - 1) / 2) * (size + 0.02), y + r * size);
+      for (let i = 0; i < n; i++) this.block(x + (i - (n - 1) / 2) * s, y + r * s, m, s);
     }
-    return y + rows * size;
+    return y + rows * s;
+  }
+
+  /** Dominos : poteaux debout espacés, qui se renversent les uns sur les autres. */
+  dominoes(x0: number, y: number, n: number, gap: number, h: number, m: M = 'bois'): number {
+    for (let i = 0; i < n; i++) this.pillar(x0 + i * gap, y, h, m);
+    return y + h;
   }
 
   relou(k: EnemyKind, x: number, y: number, v?: number): this {
@@ -126,8 +182,8 @@ export class Build {
     return this.add('cage', x, y, { friend });
   }
 
-  /** Décalage horizontal de tout le niveau : les positions sont écrites depuis 0 = 5 m devant le lanceur. */
-  static readonly DX = 5;
+  /** Décalage horizontal de tout le niveau : les positions sont écrites depuis 0 = 2 m devant le canon. */
+  static readonly DX = 2;
 
   level(def: Omit<LevelDef, 'items' | 'enemies' | 'ground'>): LevelDef {
     const dx = Build.DX;
@@ -139,8 +195,6 @@ export class Build {
     };
   }
 }
-
-type Beam = 'planche' | 'planche-glace' | 'planche-pierre' | 'planche-metal';
 
 /** Hauteurs des objets (pour empiler). */
 export const HEIGHTS: Partial<Record<ObjKind, number>> = {

@@ -3,21 +3,21 @@ import { enemyStillUrl, poseUrl, propUrl, spriteUrl } from './assets';
 import { isMuted, setMuted, sfx } from './audio';
 import { ALL_LEVELS, UNLOCKS, WORLDS, type WorldDef } from './data/levels';
 import type { Result } from './game';
-import { THEMES } from './render/art';
+import { cannonImage, THEMES } from './render/art';
 import {
   ENEMIES,
   FRIEND_BY_ID,
   FRIENDS,
   MATS,
   OBJECTS,
-  THROWER,
+  MASCOT,
   type EnemyDef,
   type EnemyKind,
   type ObjDef,
   type ObjKind,
 } from './sim/defs';
 import type { LevelDef } from './sim/level';
-import { canFullscreen, canInstall, install, isFullscreen, onInstallChange, toggleFullscreen } from './pwa';
+import { canFullscreen, isFullscreen, toggleFullscreen } from './pwa';
 import { isOpen, totalGold, totalStars, unlockedFriends, type Progress } from './save';
 
 const root = () => document.getElementById('screen')!;
@@ -69,8 +69,7 @@ const FS_ICON = `<svg class="fs-icon" viewBox="0 0 8 8" width="16" height="16" s
 
 /** Boutons plein écran et installation (cachés quand ils ne servent à rien). */
 function appButtons() {
-  return `<button class="pix-btn icon" data-act="fullscreen" title="Plein écran" ${canFullscreen() ? '' : 'hidden'}>${FS_ICON}</button>
-    <button class="pix-btn icon install" data-act="install" title="Installer l'application" ${canInstall() ? '' : 'hidden'}>📲</button>`;
+  return `<button class="pix-btn icon" data-act="fullscreen" title="Plein écran" ${canFullscreen() ? '' : 'hidden'}>${FS_ICON}</button>`;
 }
 
 function bindAppButtons(el: HTMLElement) {
@@ -80,23 +79,6 @@ function bindAppButtons(el: HTMLElement) {
       b.classList.toggle('on', isFullscreen());
     }),
   );
-  el.querySelectorAll<HTMLButtonElement>('[data-act=install]').forEach((b) => {
-    const off = onInstallChange(() => {
-      if (!b.isConnected) return off();
-      b.hidden = !canInstall();
-    });
-    b.addEventListener('click', async () => {
-      if ((await install()) === 'ios') iosHint(el);
-    });
-  });
-}
-
-function iosHint(el: HTMLElement) {
-  const tip = document.createElement('div');
-  tip.className = 'ios-hint';
-  tip.innerHTML = `<p>Pour installer le jeu : touche <b>Partager</b> <span class="sym">⎋</span> puis <b>Sur l’écran d’accueil</b>.</p><button class="pix-btn">OK</button>`;
-  tip.querySelector('button')!.addEventListener('click', () => tip.remove());
-  el.appendChild(tip);
 }
 
 export function hideScreen() {
@@ -132,7 +114,7 @@ export function titleScreen(onPlay: () => void) {
       <p class="tagline">Lance tes potes. Dégage les relous.</p>
       <button class="pix-btn big" data-act="play">JOUER</button>
       <div class="title-foot">
-        <img src="${poseUrl(THROWER, 'idle')}" alt="" class="t-thrower">
+        <img src="${cannonImage()}" alt="" class="t-thrower">
         <div class="title-tools">${appButtons()}<button class="pix-btn icon" data-act="mute">${muteLabel()}</button></div>
       </div>
     </div>`,
@@ -168,7 +150,7 @@ export function mapScreen(p: Progress, onLevel: (id: string) => void, onGuide: (
         <div class="map-stats">
           <span class="chip"><i class="sym">★</i> ${totalStars(p)}/${ALL_LEVELS.length * 3}</span>
           <span class="chip gold"><img src="${propUrl('tonneau-or')}" alt=""> ${totalGold(p)}</span>
-          <span class="chip band"><img src="${poseUrl(THROWER, 'portrait')}" alt=""> ${unlockedFriends(p).length}/${FRIENDS.length}</span>
+          <span class="chip band"><img src="${poseUrl(MASCOT, 'portrait')}" alt=""> ${unlockedFriends(p).length}/${FRIENDS.length}</span>
         </div>
         <div class="map-actions">
           <button class="pix-btn" data-act="guide">GUIDE</button>
@@ -262,7 +244,7 @@ function worldPanel(w: WorldDef, p: Progress, current: string): string {
         <span class="num">${lo ? l.id : '🔒'}</span>
         <span class="nstars">${stars(st)}</span>
         ${badge}${gold}
-        ${l.id === current ? `<img class="you" src="${poseUrl(THROWER, 'idle')}" alt="">` : ''}
+        ${l.id === current ? `<img class="you" src="${poseUrl(l.friends[0] ?? MASCOT, 'idle')}" alt="">` : ''}
       </button>`;
     })
     .join('');
@@ -502,10 +484,10 @@ export function guideScreen(p: Progress, onBack: () => void) {
   const where = (id: string) => Object.entries(UNLOCKS).find(([, f]) => f === id)?.[0];
   const friends: GuideItem[] = [
     {
-      img: poseUrl(THROWER, 'idle'),
-      name: 'JBG',
+      img: cannonImage(),
+      name: 'Le canon',
       sub: 'LE LANCEUR',
-      text: "Il ne vole pas : c'est lui qui lance toute la bande. Tire vers l'arrière, relâche.",
+      text: "Pose le doigt sur le canon, tire vers l'arrière pour viser et doser la puissance, relâche : boum.",
     },
     ...FRIENDS.map((f): GuideItem =>
       have.has(f.id)

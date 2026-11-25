@@ -102,7 +102,7 @@ export interface ObjDef {
   w: number;
   h: number;
   mat: Mat;
-  shape: 'box' | 'circle';
+  shape: 'box' | 'circle' | 'triangle';
   /** Objet fixe (trampoline, téléporteur). */
   fixed?: boolean;
   special?: Special;
@@ -378,6 +378,22 @@ export const OBJECTS = {
     shape: 'box',
     intro: 'Métal : presque incassable, il faut le faire tomber.',
   },
+  // modules ronds (roulent) et triangles (toits), dimensions données par le niveau
+  rond: { label: 'Roue en bois', w: 1, h: 1, mat: 'wood', shape: 'circle' },
+  'rond-glace': { label: 'Boule de glace', w: 1, h: 1, mat: 'ice', shape: 'circle' },
+  'rond-pierre': {
+    label: 'Boulet de pierre',
+    w: 1,
+    h: 1,
+    mat: 'stone',
+    shape: 'circle',
+    intro: 'Boulet de pierre : pousse-le, il dévale et écrase tout.',
+  },
+  'rond-metal': { label: 'Boulet de métal', w: 1, h: 1, mat: 'metal', shape: 'circle' },
+  coin: { label: 'Toit en bois', w: 1.2, h: 0.8, mat: 'wood', shape: 'triangle' },
+  'coin-glace': { label: 'Toit de glace', w: 1.2, h: 0.8, mat: 'ice', shape: 'triangle' },
+  'coin-pierre': { label: 'Toit de pierre', w: 1.2, h: 0.8, mat: 'stone', shape: 'triangle' },
+  'coin-metal': { label: 'Toit de métal', w: 1.2, h: 0.8, mat: 'metal', shape: 'triangle' },
 } satisfies Record<string, ObjDef>;
 
 export type ObjKind = keyof typeof OBJECTS;
@@ -742,5 +758,5 @@ export const FRIENDS: FriendDef[] = [
 
 export const FRIEND_BY_ID: Record<string, FriendDef> = Object.fromEntries(FRIENDS.map((f) => [f.id, f]));
 
-/** Le lanceur : il ne vole pas, il lance. */
-export const THROWER = 'jbg';
+/** L'ami qui représente le jeu (carte, icônes). */
+export const MASCOT = 'roulian';

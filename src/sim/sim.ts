@@ -17,7 +17,15 @@ import type { LevelDef } from './level';
 
 export const GRAVITY = -11;
 export const MAX_SPEED = 23;
-export const ANCHOR = { x: 0.6, y: 2.6 };
+/** Pivot du canon (m) et longueur du fût : l'ami sort par la bouche du canon. */
+export const CANNON = { x: 0, y: 1.15 };
+export const BARREL = 1.75;
+
+/** Bouche du canon pour un tir dans la direction (vx, vy). */
+export function muzzle(vx: number, vy: number) {
+  const d = Math.hypot(vx, vy) || 1;
+  return { x: CANNON.x + (vx / d) * BARREL, y: CANNON.y + (vy / d) * BARREL };
+}
 export const DT = 1 / 60;
 
 const IMP_MIN = 2.2;
@@ -36,7 +44,7 @@ export interface Ent {
   body: Body;
   w: number;
   h: number;
-  shape: 'box' | 'circle';
+  shape: 'box' | 'circle' | 'triangle';
   mat: Mat | 'enemy' | 'friend';
   hp: number;
   maxHp: number;
@@ -179,6 +187,11 @@ export class Sim {
       isSensor: special?.type === 'portal',
     };
     if (def.shape === 'circle') body.createFixture({ shape: new Circle(Math.min(w, h) / 2), ...fixture });
+    else if (def.shape === 'triangle')
+      body.createFixture({
+        shape: new Polygon([new Vec2(-w / 2, -h / 2), new Vec2(w / 2, -h / 2), new Vec2(0, h / 2)]),
+        ...fixture,
+      });
     else if (special?.type === 'bounce') {
       // trampoline : toile en haut, pieds en dessous
       body.createFixture({ shape: new Box(w / 2, h * 0.12, new Vec2(0, h * 0.32), 0), ...fixture });
@@ -189,7 +202,7 @@ export class Sim {
       });
     } else if (special?.type === 'portal') {
       body.createFixture({ shape: new Box(w * 0.32, h * 0.38, new Vec2(0, 0), 0), ...fixture });
-    } else body.createFixture({ shape: chamfered(w, h), ...fixture });
+    } else body.createFixture({ shape: chamfered(w, h, Math.min(w, h) * 0.16), ...fixture });
     const hp = def.hp ?? mat.hp;
     const ent = this.makeEnt('block', body, w, h, def.shape, def.mat, hp);
     ent.obj = item.k;
@@ -225,7 +238,7 @@ export class Sim {
     body: Body,
     w: number,
     h: number,
-    shape: 'box' | 'circle',
+    shape: 'box' | 'circle' | 'triangle',
     mat: Ent['mat'],
     hp: number,
   ): Ent {
@@ -302,7 +315,7 @@ export class Sim {
     const def = FRIEND_BY_ID[id]!;
     const body = this.world.createBody({
       type: 'dynamic',
-      position: new Vec2(ANCHOR.x, ANCHOR.y),
+      position: new Vec2(muzzle(vx, vy).x, muzzle(vx, vy).y),
       bullet: true,
     });
     body.createFixture({
@@ -785,7 +798,7 @@ export class Sim {
   private finish(won: boolean) {
     if (won) {
       for (const [i] of this.queue.entries())
-        this.addScore(FRIEND_BONUS, ANCHOR.x - 1.2 - i * 1.1, ANCHOR.y, '#ffd23f');
+        this.addScore(FRIEND_BONUS, CANNON.x - 2.4 - i * 1.1, 2, '#ffd23f');
     }
     this.phase = won ? 'won' : 'lost';
     this.events.push({ t: 'end', won });

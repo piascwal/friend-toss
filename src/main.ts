@@ -4,7 +4,7 @@ import './style.css';
 import { loadCharacters, loadNpcs } from './assets';
 import { ALL_LEVELS, LEVEL_BY_ID, UNLOCKS } from './data/levels';
 import { Game, preloadLevel, type Result } from './game';
-import { FRIENDS, THROWER } from './sim/defs';
+import { FRIENDS } from './sim/defs';
 import { autoFullscreen, isPortrait, setupPwa } from './pwa';
 import { loadProgress, saveProgress, type Progress } from './save';
 import {
@@ -107,7 +107,7 @@ function finish(id: string, r: Result) {
 async function boot() {
   loadingScreen('Chargement de la bande…');
   await Promise.all([
-    loadCharacters([THROWER, ...FRIENDS.map((f) => f.id)]),
+    loadCharacters(FRIENDS.map((f) => f.id)),
     loadNpcs(),
     document.fonts?.load('16px "Press Start 2P"'),
   ]);

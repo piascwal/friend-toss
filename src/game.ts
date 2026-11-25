@@ -2,9 +2,9 @@
 import { enemyStillUrl, load, pose, posePath, poseUrl, preloadEnemy, spritePath } from './assets';
 import { sfx } from './audio';
 import type { WorldDef } from './data/levels';
-import { ENEMIES, FRIEND_BY_ID, OBJECTS, THROWER, type ObjDef } from './sim/defs';
+import { ENEMIES, FRIEND_BY_ID, OBJECTS, type ObjDef } from './sim/defs';
 import type { LevelDef } from './sim/level';
-import { ANCHOR, createSim, DT, MAX_SPEED, type Ent, type Sim } from './sim/sim';
+import { CANNON, createSim, DT, MAX_SPEED, muzzle, type Ent, type Sim } from './sim/sim';
 import { Renderer, type Scene } from './render/renderer';
 import { THEMES } from './render/art';
 import { up } from './ui';
@@ -23,17 +23,11 @@ const POSES = ['idle', 'portrait', 'jump', 'fall', 'hit', 'down', 'win'];
 /** Précharge les images d'un niveau. */
 export async function preloadLevel(level: LevelDef, world: WorldDef) {
   const jobs: Promise<unknown>[] = [];
-  const friends = new Set([
-    ...level.friends,
-    THROWER,
-    ...level.items.filter((i) => i.friend).map((i) => i.friend!),
-  ]);
+  const friends = new Set([...level.friends, ...level.items.filter((i) => i.friend).map((i) => i.friend!)]);
   for (const id of friends) {
     const f = FRIEND_BY_ID[id];
     for (const p of [
       ...POSES,
-      'crouch',
-      'punch_heavy',
       f?.castPose,
       f?.fxPose,
       f?.power === 'pet' ? 'pj_pet_run2' : undefined,
@@ -55,13 +49,18 @@ export async function preloadLevel(level: LevelDef, world: WorldDef) {
 export class Game {
   readonly sim: Sim;
   private renderer: Renderer;
-  private scene: Scene = { throwerPose: 'idle', waiting: [] };
+  private scene: Scene = { cannon: { angle: 0.6, recoil: 0 }, waiting: [] };
   private raf = 0;
   private last = 0;
   private acc = 0;
   private drag: { id: number; x: number; y: number } | null = null;
   private aimVel: { vx: number; vy: number; power: number } | null = null;
-  private throwT = 0;
+  /** Doigts posés (pour glisser la vue ou zoomer à deux doigts). */
+  private pointers = new Map<number, { x: number; y: number }>();
+  private pan: { id: number; x: number } | null = null;
+  private pinch: { d: number } | null = null;
+  private recoil = 0;
+  private angle = 0.6;
   private hop = 1;
   private loadedId: string | undefined;
   private ended = false;
@@ -81,6 +80,7 @@ export class Game {
     this.sim = createSim(level);
     this.renderer = new Renderer(canvas);
     this.renderer.setLevel(level, world.theme, this.sim);
+    this.renderer.startIntro(this.sim);
     this.hud = hudRoot;
     this.buildHud();
     this.bindInput();
@@ -114,47 +114,90 @@ export class Game {
     on(c, 'pointerdown', (e) => this.down(e));
     on(window, 'pointermove', (e) => this.move(e));
     on(window, 'pointerup', (e) => this.up(e));
-    on(window, 'pointercancel', () => this.cancelAim());
+    on(window, 'pointercancel', (e) => {
+      this.pointers.delete(e.pointerId);
+      this.cancelAim();
+      this.pan = null;
+      this.pinch = null;
+    });
+    on(c, 'wheel', (e) => {
+      e.preventDefault();
+      if (this.renderer.introRunning) this.renderer.skipIntro();
+      this.renderer.zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.offsetX);
+    });
     on(window, 'resize', () => this.renderer.resize());
     on(window, 'keydown', (e) => {
       if (this.paused) return;
       if (e.code === 'Space') {
         e.preventDefault();
-        this.trigger();
+        if (this.renderer.introRunning) this.renderer.skipIntro();
+        else this.trigger();
       }
       if (e.code === 'Escape' || e.code === 'KeyP') this.cb.pause();
       if (e.code === 'KeyR') this.cb.restart();
+      if (e.code === 'KeyC') this.renderer.backToCannon();
     });
   }
 
-  private anchorScreen() {
-    return this.renderer.toScreen(ANCHOR.x, ANCHOR.y);
+  private local(e: PointerEvent) {
+    const r = this.canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  /** Le doigt est sur le canon (ou sur l'ami chargé) : on vise. Ailleurs : on fait glisser la vue. */
+  private nearCannon(x: number, y: number) {
+    const R = this.renderer;
+    const reach = Math.max(80, R.cam.s * 2.4);
+    const a = R.toScreen(CANNON.x, CANNON.y);
+    const m = R.toScreen(CANNON.x + Math.cos(this.angle) * 1.6, CANNON.y + Math.sin(this.angle) * 1.6);
+    return Math.hypot(x - a.x, y - a.y) < reach || Math.hypot(x - m.x, y - m.y) < reach;
   }
 
   private down(e: PointerEvent) {
     if (this.paused || this.ended) return;
-    const r = this.canvas.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    const y = e.clientY - r.top;
-    if (this.sim.current) {
-      const w = this.renderer.toWorld(x, y);
-      this.trigger(w);
+    const { x, y } = this.local(e);
+    this.pointers.set(e.pointerId, { x, y });
+    this.canvas.setPointerCapture?.(e.pointerId);
+    if (this.renderer.introRunning) {
+      this.renderer.skipIntro();
       return;
     }
-    if (!this.sim.canLaunch || this.hop < 1) return;
-    const a = this.anchorScreen();
-    const near = Math.hypot(x - a.x, y - a.y) < Math.max(80, this.renderer.cam.s * 2.2);
-    if (near || x < r.width * 0.45) {
-      this.drag = { id: e.pointerId, x, y };
-      this.canvas.setPointerCapture?.(e.pointerId);
-      this.updateAim(x, y);
+    if (this.pointers.size === 2) {
+      // deux doigts : zoom
+      this.cancelAim();
+      this.pan = null;
+      const [a, b] = [...this.pointers.values()];
+      this.pinch = { d: Math.hypot(a!.x - b!.x, a!.y - b!.y) };
+      return;
     }
+    if (
+      this.sim.current &&
+      this.sim.current.impactAt === undefined &&
+      this.sim.current.friend?.power !== 'none'
+    ) {
+      this.trigger(this.renderer.toWorld(x, y));
+      return;
+    }
+    if (this.sim.canLaunch && this.hop >= 1 && this.nearCannon(x, y)) {
+      this.drag = { id: e.pointerId, x, y };
+      this.updateAim(x, y);
+    } else this.pan = { id: e.pointerId, x };
   }
 
   private move(e: PointerEvent) {
-    if (!this.drag || e.pointerId !== this.drag.id) return;
-    const r = this.canvas.getBoundingClientRect();
-    this.updateAim(e.clientX - r.left, e.clientY - r.top);
+    if (!this.pointers.has(e.pointerId)) return;
+    const { x, y } = this.local(e);
+    this.pointers.set(e.pointerId, { x, y });
+    if (this.pinch && this.pointers.size >= 2) {
+      const [a, b] = [...this.pointers.values()];
+      const d = Math.hypot(a!.x - b!.x, a!.y - b!.y);
+      if (this.pinch.d > 0) this.renderer.zoomAt(d / this.pinch.d, (a!.x + b!.x) / 2);
+      this.pinch.d = d;
+    } else if (this.drag && e.pointerId === this.drag.id) this.updateAim(x, y);
+    else if (this.pan && e.pointerId === this.pan.id) {
+      this.renderer.panBy(x - this.pan.x);
+      this.pan.x = x;
+    }
   }
 
   private radius() {
@@ -162,7 +205,7 @@ export class Game {
   }
 
   private updateAim(x: number, y: number) {
-    // on tire depuis l'endroit où le doigt s'est posé : le geste marche partout sur la gauche
+    // on tire vers l'arrière depuis l'endroit où le doigt s'est posé
     const d = this.drag!;
     let dx = x - d.x;
     let dy = y - d.y;
@@ -174,10 +217,14 @@ export class Game {
     }
     const power = Math.min(1, len / R);
     this.aimVel = { vx: (-dx / R) * MAX_SPEED, vy: (dy / R) * MAX_SPEED, power };
+    if (power > 0.08) this.angle = Math.atan2(this.aimVel.vy, this.aimVel.vx);
     if (power > 0.05) sfx.stretch(power);
   }
 
   private up(e: PointerEvent) {
+    this.pointers.delete(e.pointerId);
+    if (this.pointers.size < 2) this.pinch = null;
+    if (this.pan && e.pointerId === this.pan.id) this.pan = null;
     if (!this.drag || e.pointerId !== this.drag.id) return;
     this.drag = null;
     const v = this.aimVel;
@@ -185,8 +232,9 @@ export class Game {
     if (!v || v.power < 0.15 || !this.sim.canLaunch) return;
     const ent = this.sim.launch(v.vx, v.vy);
     if (ent) {
-      this.throwT = 0.5;
+      this.recoil = 1;
       this.loadedId = undefined;
+      this.renderer.launched();
     }
   }
 
@@ -219,8 +267,8 @@ export class Game {
       this.handleEvents();
     }
     if (n >= 4) this.acc = 0;
-    this.throwT = Math.max(0, this.throwT - dt);
-    this.hop = Math.min(1, this.hop + dt * 3);
+    this.recoil = Math.max(0, this.recoil - dt * 3);
+    if (!this.renderer.introRunning) this.hop = Math.min(1, this.hop + dt * 2.5);
     this.renderer.draw(this.sim, this.sceneNow(), dt);
     this.updateHud();
   };
@@ -234,27 +282,11 @@ export class Game {
     }
     const won = sim.phase === 'won';
     const s = this.scene;
-    s.throwerPose = won ? 'win' : this.throwT > 0 ? 'punch_heavy' : this.drag ? 'crouch' : 'idle';
+    s.cannon = { angle: this.angle, recoil: this.recoil };
     s.celebrate = won;
     s.aim = this.drag && this.aimVel ? this.aimVel : undefined;
     s.waiting = sim.phase === 'aim' ? sim.queue.slice(1) : sim.queue.slice(sim.phase === 'flying' ? 0 : 1);
-    if (sim.phase === 'aim' && this.loadedId) {
-      const R = this.radius();
-      const pull = s.aim
-        ? { x: (-s.aim.vx / MAX_SPEED) * R, y: (-s.aim.vy / MAX_SPEED) * R }
-        : { x: 0, y: 0 };
-      const k = this.hop;
-      const from = { x: -2.2, y: 0.7 };
-      const scale = this.renderer.cam.s;
-      const x = ANCHOR.x + pull.x / scale;
-      const y = ANCHOR.y + pull.y / scale;
-      s.loaded = {
-        id: this.loadedId,
-        x: from.x + (x - from.x) * k,
-        y: from.y + (y - from.y) * k,
-        hop: k < 1 ? k : 0,
-      };
-    } else s.loaded = undefined;
+    s.loaded = sim.phase === 'aim' && this.loadedId ? { id: this.loadedId, hop: this.hop } : undefined;
     return s;
   }
 
@@ -267,8 +299,12 @@ export class Game {
         case 'launch': {
           sfx.launch();
           const f = ev.ent.friend!;
-          R.text(ANCHOR.x + 0.5, ANCHOR.y + 1.6, f.shout, '#1a1020', 12, 1.3, true);
-          R.smoke(ANCHOR.x, ANCHOR.y, 4, 0.35);
+          const v = ev.ent.body.getLinearVelocity();
+          const m = muzzle(v.x, v.y);
+          R.flash(m.x, m.y, 1.4, '#ffd27a');
+          R.smoke(m.x, m.y, 8, 0.5, 'rgba(235,235,235,0.9)');
+          R.addShake(0.25);
+          R.text(CANNON.x + 1, CANNON.y + 2.8, f.shout, '#1a1020', 12, 1.3, true);
           break;
         }
         case 'break':

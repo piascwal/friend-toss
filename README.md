@@ -1,6 +1,6 @@
 # Friend Toss
 
-Jeu de lancer en pixel art : **JBG** lance ses potes sur les structures où se cachent **les relous**
+Jeu de lancer en pixel art : un **canon** envoie tes potes sur les structures où se cachent **les relous**
 (fêtards, videurs, yétis, DJ Boucle…). Chaque ami a son pouvoir, déclenché en touchant l'écran pendant
 son vol. Des amis sont enfermés dans des cages : gagner le niveau les libère, et ils rejoignent la bande.
 
@@ -9,7 +9,9 @@ personnages, objets de décor, ennemis et boss.
 
 ## Jouer
 
-- **Viser** : appuie à gauche de l'écran (ou sur l'ami), tire vers l'arrière, relâche.
+- **Ouverture** : la caméra montre ce qu'il faut casser puis glisse jusqu'au canon (touche pour passer).
+- **Viser** : pose le doigt sur le canon, tire vers l'arrière, relâche.
+- **Regarder** : fais glisser la vue ailleurs que sur le canon ; zoome à deux doigts (ou molette). C : retour au canon.
 - **Pouvoir** : touche l'écran (clic, ou Espace) pendant le vol. Pour RORO, touche l'endroit visé.
 - **Pause** : Échap ou P. **Recommencer** : R.
 - Le score donne 1 à 3 étoiles ; chaque ami non utilisé rapporte 10 000 points.
@@ -20,8 +22,8 @@ Le jeu se joue en **paysage, plein écran, sans aucun défilement** : en portrai
 le téléphone. Le plein écran (et le blocage en paysage, quand le navigateur le permet) se déclenche au premier
 « JOUER » ; un bouton le rebascule.
 
-Il s'**installe comme une application** (bouton 📲, ou menu du navigateur « Installer » / « Ajouter à
-l'écran d'accueil » ; sur iPhone : Partager → Sur l'écran d'accueil). Une fois installé, il s'ouvre en plein
+Il s'**installe comme une application** par le menu du navigateur (« Installer » / « Ajouter à l'écran
+d'accueil » ; sur iPhone : Partager → Sur l'écran d'accueil). Une fois installé, il s'ouvre en plein
 écran et marche hors ligne pour les niveaux déjà chargés.
 
 ## La bande
@@ -91,8 +93,9 @@ tests/                 niveaux bien construits ; solveur (tests/solve/)
 
 ### Ajouter un niveau
 
-Dans `src/data/levels.ts`, une fonction construit le niveau avec `Build` (positions en mètres, `x = 0`
-à 5 m devant le lanceur, `y` = bas de la pièce), puis on l'ajoute à son monde. `npm test` vérifie que la
+Dans `src/data/levels.ts`, une fonction construit le niveau avec `Build`, module par module : blocs,
+poutres et poteaux épais, ronds, toits, pièces, tours, murs, pyramides, dominos (positions en mètres,
+`x = 0` à 2 m devant le canon, `y` = bas de la pièce), puis on l'ajoute à son monde. `npm test` vérifie que la
 structure tient debout, `npm run solve` qu'elle est gagnable.
 
 ### Images

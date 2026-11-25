@@ -32,116 +32,212 @@ const px = (ctx: CanvasRenderingContext2D, x: number, y: number, col: string, w 
 
 /* ------------------------------------------------------------ poutres */
 
-const beamCache = new Map<string, HTMLCanvasElement>();
+const blockCache = new Map<string, HTMLCanvasElement>();
 
-/** Texture d'une poutre (bois, glace, pierre, métal) de w × h mètres, à l'état d'usure `stage` (0 à 2). */
-export function beamTexture(
+/** Couleurs d'un module : fond, clair, sombre, contour, motif. */
+const BLOCK_COLORS: Record<
+  string,
+  { base: string; light: string; dark: string; line: string; mark: string; alpha?: number }
+> = {
+  wood: { base: '#c98a45', light: '#f2bd73', dark: '#8a5226', line: '#3d200c', mark: '#a86a32' },
+  ice: { base: '#a8e6f7', light: '#ffffff', dark: '#5bb5d6', line: '#2f7ea3', mark: '#d6f6ff', alpha: 0.9 },
+  stone: { base: '#a5a198', light: '#dad6cd', dark: '#6e6a63', line: '#34312d', mark: '#8c887f' },
+  metal: { base: '#9aa5b2', light: '#eef3f8', dark: '#5d6773', line: '#252b33', mark: '#7d8794' },
+};
+
+function rgb(hex: string): [number, number, number] {
+  const v = parseInt(hex.slice(1), 16);
+  return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+}
+
+/**
+ * Module de construction (bloc, poutre, rond, triangle) en pixel art : coins arrondis, contour sombre,
+ * biseau clair en haut à gauche et sombre en bas à droite, motif du matériau, usure (`stage`, 0 à 2).
+ */
+export function blockTexture(
   mat: Mat,
   w: number,
   h: number,
+  shape: 'box' | 'circle' | 'triangle',
   stage: number,
   frozen: boolean,
 ): HTMLCanvasElement {
-  const key = `${mat}|${w}|${h}|${stage}|${frozen}`;
-  const hit = beamCache.get(key);
+  const key = `${mat}|${w}|${h}|${shape}|${stage}|${frozen}`;
+  const hit = blockCache.get(key);
   if (hit) return hit;
-  const W = Math.max(3, Math.round(w * TEX));
-  const H = Math.max(3, Math.round(h * TEX));
+  const W = Math.max(4, Math.round(w * TEX));
+  const H = Math.max(4, Math.round(h * TEX));
   const { c, ctx } = canvas(W, H);
-  const r = rng(W * 131 + H * 7 + mat.length);
-  if (mat === 'wood') {
-    px(ctx, 0, 0, '#b9773f', W, H);
-    const vertical = H > W;
-    // lames
-    const n = vertical ? Math.max(1, Math.round(W / 4)) : Math.max(1, Math.round(H / 4));
-    for (let i = 1; i < n; i++) {
-      if (vertical) px(ctx, Math.round((i * W) / n), 0, '#8a5226', 1, H);
-      else px(ctx, 0, Math.round((i * H) / n), '#8a5226', W, 1);
+  const col = BLOCK_COLORS[mat] ?? BLOCK_COLORS.wood!;
+  const rad = Math.max(2, Math.round(Math.min(W, H) * 0.3));
+  const inside = (x: number, y: number): boolean => {
+    if (x < 0 || y < 0 || x >= W || y >= H) return false;
+    const px = x + 0.5;
+    const py = y + 0.5;
+    if (shape === 'circle') return (px - W / 2) ** 2 / (W / 2) ** 2 + (py - H / 2) ** 2 / (H / 2) ** 2 <= 1;
+    if (shape === 'triangle') return Math.abs(px - W / 2) <= (py / H) * (W / 2) + 0.3;
+    const cx = Math.min(Math.max(px, rad), W - rad);
+    const cy = Math.min(Math.max(py, rad), H - rad);
+    return (px - cx) ** 2 + (py - cy) ** 2 <= rad * rad;
+  };
+  const r = rng(W * 31 + H * 17 + mat.length * 7 + shape.length);
+  const img = ctx.createImageData(W, H);
+  const base = rgb(col.base);
+  const light = rgb(col.light);
+  const dark = rgb(col.dark);
+  const line = rgb(col.line);
+  const mark = rgb(col.mark);
+  const alpha = Math.round((col.alpha ?? 1) * 255);
+  const vertical = H > W * 1.3;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (!inside(x, y)) continue;
+      let c3 = base;
+      // motif du matériau
+      if (mat === 'wood') {
+        const t = vertical ? x : y;
+        const n = vertical ? W : H;
+        if (shape === 'circle') {
+          const d = Math.hypot(x + 0.5 - W / 2, y + 0.5 - H / 2);
+          if (Math.round(d) % 3 === 0) c3 = mark;
+        } else if (n > 6 && t % 5 === 2) c3 = mark;
+        else if (r() < 0.06) c3 = mark;
+      } else if (mat === 'stone') {
+        const v = r();
+        if (v < 0.12) c3 = mark;
+        else if (v < 0.17) c3 = light;
+      } else if (mat === 'ice') {
+        if ((x + y) % 9 === 0 || (x + y) % 9 === 1) c3 = mark;
+      } else if (mat === 'metal') {
+        if (y < H * 0.35) c3 = mark;
+      }
+      // biseau et contour (selon les voisins hors de la forme)
+      const up = inside(x, y - 1);
+      const left = inside(x - 1, y);
+      const down = inside(x, y + 1);
+      const right = inside(x + 1, y);
+      if (!up || !left || !down || !right) c3 = line;
+      else if (!inside(x, y - 2) || !inside(x - 2, y)) c3 = light;
+      else if (!inside(x, y + 2) || !inside(x + 2, y)) c3 = dark;
+      const o = (y * W + x) * 4;
+      img.data[o] = c3[0];
+      img.data[o + 1] = c3[1];
+      img.data[o + 2] = c3[2];
+      img.data[o + 3] = c3 === line ? 255 : alpha;
     }
-    for (let i = 0; i < (W * H) / 6; i++)
-      px(
-        ctx,
-        Math.floor(r() * W),
-        Math.floor(r() * H),
-        r() < 0.5 ? '#a4652f' : '#c98a4f',
-        vertical ? 1 : 2,
-        vertical ? 2 : 1,
-      );
-    ctx.strokeStyle = '#5a3216';
-    px(ctx, 0, 0, '#e0a868', W, 1);
-    px(ctx, 0, 0, '#d4975a', 1, H);
-    px(ctx, 0, H - 1, '#5a3216', W, 1);
-    px(ctx, W - 1, 0, '#5a3216', 1, H);
-    // clous
-    const nail = (x: number, y: number) => {
-      px(ctx, x, y, '#3b3b3b');
-      px(ctx, x, y - 1 >= 0 ? y - 1 : y, '#cfcfcf');
-    };
-    if (vertical) {
-      nail(Math.floor(W / 2), 2);
-      nail(Math.floor(W / 2), H - 3);
-    } else {
-      nail(2, Math.floor(H / 2));
-      nail(W - 3, Math.floor(H / 2));
-    }
-  } else if (mat === 'stone') {
-    px(ctx, 0, 0, '#9b978f', W, H);
-    for (let i = 0; i < (W * H) / 4; i++)
-      px(
-        ctx,
-        Math.floor(r() * W),
-        Math.floor(r() * H),
-        ['#8a867f', '#aeaaa2', '#7d7973'][Math.floor(r() * 3)]!,
-      );
-    const brick = 10;
-    const rows = Math.max(1, Math.round(H / 6));
-    for (let j = 0; j < rows; j++) {
-      const y0 = Math.round((j * H) / rows);
-      if (j) px(ctx, 0, y0, '#5f5b56', W, 1);
-      for (let x = (j % 2) * (brick / 2); x < W; x += brick)
-        if (x > 0) px(ctx, Math.round(x), y0, '#5f5b56', 1, Math.round(H / rows));
-    }
-    px(ctx, 0, 0, '#cbc7bf', W, 1);
-    px(ctx, 0, H - 1, '#4c4945', W, 1);
-    px(ctx, 0, 0, '#4c4945', 1, H);
-    px(ctx, W - 1, 0, '#4c4945', 1, H);
-  } else if (mat === 'metal') {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#c3ccd6');
-    g.addColorStop(0.5, '#8e99a6');
-    g.addColorStop(1, '#6b7581');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < W * H * 0.05; i++) px(ctx, Math.floor(r() * W), Math.floor(r() * H), '#7d8794');
-    const step = 8;
-    const vertical = H > W;
-    for (let t = 3; t < (vertical ? H : W) - 2; t += step) {
-      const [x, y] = vertical ? [Math.floor(W / 2), t] : [t, Math.floor(H / 2)];
-      px(ctx, x, y, '#4a525d');
-      px(ctx, x - 1, y - 1, '#eef3f8');
-    }
-    px(ctx, 0, 0, '#eef3f8', W, 1);
-    px(ctx, 0, H - 1, '#3e4650', W, 1);
-    px(ctx, 0, 0, '#3e4650', 1, H);
-    px(ctx, W - 1, 0, '#3e4650', 1, H);
-  } else {
-    // glace
-    px(ctx, 0, 0, 'rgba(160,226,248,0.82)', W, H);
-    for (let i = 0; i < W + H; i += 7) {
-      for (let k = 0; k < 3; k++) px(ctx, i - k * 1, k + 1, 'rgba(255,255,255,0.75)');
-    }
-    for (let i = 0; i < (W * H) / 10; i++)
-      px(ctx, Math.floor(r() * W), Math.floor(r() * H), 'rgba(220,248,255,0.8)');
-    px(ctx, 0, 0, '#ffffff', W, 1);
-    px(ctx, 0, H - 1, '#4ba3c7', W, 1);
-    px(ctx, 0, 0, '#e8fbff', 1, H);
-    px(ctx, W - 1, 0, '#4ba3c7', 1, H);
+  ctx.putImageData(img, 0, 0);
+  // détails : clous du bois, rivets du métal, reflet de la glace
+  const dot = (x: number, y: number, a: string, b: string) => {
+    if (!inside(x, y) || !inside(x + 1, y + 1)) return;
+    px(ctx, x, y, a);
+    px(ctx, x + 1, y + 1, b);
+  };
+  if (shape === 'box' && (mat === 'wood' || mat === 'metal')) {
+    const m = Math.max(2, Math.round(rad * 0.75));
+    const [a, b] = mat === 'wood' ? ['#3b3b3b', '#d8d8d8'] : ['#eef3f8', '#3e4650'];
+    dot(m, m, b, a);
+    dot(W - m - 2, m, b, a);
+    dot(m, H - m - 2, b, a);
+    dot(W - m - 2, H - m - 2, b, a);
+  }
+  if (mat === 'ice') {
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let k = 0; k < Math.min(W, H) * 0.5; k++) if (inside(3 + k, 2)) ctx.fillRect(3 + k, 2, 1, 1);
   }
   if (frozen) frost(ctx, W, H, r);
   if (stage > 0) cracks(ctx, W, H, stage, r);
-  beamCache.set(key, c);
+  if (frozen || stage > 0) {
+    // garde la forme arrondie après les fissures
+    ctx.globalCompositeOperation = 'destination-in';
+    const mask = document.createElement('canvas');
+    mask.width = W;
+    mask.height = H;
+    const mc = mask.getContext('2d')!;
+    const md = mc.createImageData(W, H);
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) if (inside(x, y)) md.data[(y * W + x) * 4 + 3] = 255;
+    mc.putImageData(md, 0, 0);
+    ctx.drawImage(mask, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  blockCache.set(key, c);
   return c;
 }
+
+/* ------------------------------------------------------------ canon */
+
+const CT = 24;
+let cannonParts: { barrel: HTMLCanvasElement; carriage: HTMLCanvasElement; wheel: HTMLCanvasElement } | null =
+  null;
+
+/** Canon en pixel art : fût en fonte cerclé de laiton, affût en bois, roues à rayons. */
+export function cannonArt() {
+  if (cannonParts) return cannonParts;
+  // fût : de -0.45 m (culasse) à +1.85 m (bouche), 0.8 m de haut
+  const BW = Math.round(2.3 * CT);
+  const BH = Math.round(0.8 * CT);
+  const b = canvas(BW, BH);
+  const g = b.ctx;
+  const mid = BH / 2;
+  for (let x = 0; x < BW; x++) {
+    const t = x / BW;
+    // le fût s'affine vers la bouche, la bouche s'évase
+    let half = BH * (0.36 - t * 0.08);
+    if (t > 0.9) half = BH * 0.42;
+    if (t < 0.08) half = BH * 0.3 * Math.sqrt(Math.max(0, 1 - ((0.08 - t) / 0.08) ** 2)) + 1;
+    const top = Math.round(mid - half);
+    const bot = Math.round(mid + half);
+    px(g, x, top, '#16181d', 1, bot - top);
+    px(g, x, top + 1, '#3a3f4a', 1, Math.max(0, bot - top - 2));
+    px(g, x, top + 2, '#6b7484', 1, Math.max(1, Math.round((bot - top) * 0.18)));
+    px(g, x, Math.round(mid + half * 0.45), '#24272e', 1, Math.max(1, Math.round(half * 0.4)));
+    const ring = (a: number) => t > a && t < a + 0.035;
+    if (ring(0.12) || ring(0.45) || ring(0.86)) {
+      px(g, x, top, '#5a3d0a', 1, bot - top);
+      px(g, x, top + 1, '#d9a93a', 1, Math.max(0, bot - top - 2));
+      px(g, x, top + 1, '#ffe08a', 1, 1);
+    }
+  }
+  // bouche : intérieur sombre
+  px(g, BW - 2, Math.round(mid - BH * 0.3), '#0b0b0e', 2, Math.round(BH * 0.6));
+  // affût
+  const CW = Math.round(1.7 * CT);
+  const CH = Math.round(0.75 * CT);
+  const a = canvas(CW, CH);
+  const ac = a.ctx;
+  for (let y = 0; y < CH; y++) {
+    const inset = Math.round((1 - y / CH) * CW * 0.22);
+    px(ac, inset, y, '#3d200c', CW - 2 * inset, 1);
+    if (y > 0 && y < CH - 1)
+      px(ac, inset + 1, y, y < 3 ? '#e0a868' : y % 6 === 0 ? '#8a5226' : '#b9773f', CW - 2 * inset - 2, 1);
+  }
+  for (const bx of [0.3, 0.7]) {
+    px(ac, Math.round(CW * bx), Math.round(CH * 0.4), '#d8d8d8', 2, 2);
+    px(ac, Math.round(CW * bx) + 1, Math.round(CH * 0.4) + 1, '#3b3b3b', 1, 1);
+  }
+  // roue
+  const WD = Math.round(1 * CT);
+  const w = canvas(WD, WD);
+  const wc = w.ctx;
+  const R = WD / 2;
+  for (let y = 0; y < WD; y++)
+    for (let x = 0; x < WD; x++) {
+      const d = Math.hypot(x + 0.5 - R, y + 0.5 - R);
+      const ang = Math.atan2(y + 0.5 - R, x + 0.5 - R);
+      if (d > R) continue;
+      let colr = '';
+      if (d > R - 1.5) colr = '#16181d';
+      else if (d > R - 3.5) colr = '#6b7484';
+      else if (d > R - 5) colr = '#3d200c';
+      else if (d < 3) colr = d < 2 ? '#d9a93a' : '#3d200c';
+      else if (Math.abs(Math.sin(ang * 4)) < 0.22) colr = '#b9773f';
+      if (colr) px(wc, x, y, colr);
+    }
+  cannonParts = { barrel: b.c, carriage: a.c, wheel: w.c };
+  return cannonParts;
+}
+
+export const CANNON_TEX = CT;
 
 function frost(ctx: CanvasRenderingContext2D, W: number, H: number, r: () => number) {
   ctx.fillStyle = 'rgba(150,225,255,0.5)';
@@ -550,4 +646,29 @@ function lights(ctx: CanvasRenderingContext2D, w: number, horizon: number, time:
       px(ctx, x, Math.round(y0 + sag), on ? cols[((x / 7 + s) % cols.length) | 0]! : '#553355', 2, 2);
     }
   }
+}
+
+let cannonUrl = '';
+
+/** Image du canon (guide, titre) : le canon dessiné à plat, en grand. */
+export function cannonImage(): string {
+  if (cannonUrl) return cannonUrl;
+  const { barrel, carriage, wheel } = cannonArt();
+  const S = 4;
+  const c = document.createElement('canvas');
+  c.width = Math.round(2.9 * CT * S);
+  c.height = Math.round(1.9 * CT * S);
+  const g = c.getContext('2d')!;
+  g.imageSmoothingEnabled = false;
+  const m = (v: number) => v * CT * S;
+  g.drawImage(wheel, m(0.35), m(0.9), m(1), m(1));
+  g.drawImage(carriage, m(0.45), m(0.85), m(1.7), m(0.75));
+  g.save();
+  g.translate(m(1.3), m(0.8));
+  g.rotate(-0.45);
+  g.drawImage(barrel, m(-0.45 - 0.2), m(-0.4), m(2.3), m(0.8));
+  g.restore();
+  g.drawImage(wheel, m(1.25), m(0.9), m(1), m(1));
+  cannonUrl = c.toDataURL();
+  return cannonUrl;
 }

@@ -1,11 +1,11 @@
-/* Icônes de l'application (écran d'accueil du téléphone), faites à partir du portrait de JBG dans la banque :
+/* Icônes de l'application (écran d'accueil du téléphone), faites à partir du portrait de ROULIAN dans la banque :
    public/icons/ n'est pas versionné, il est refait par `npm run sprites`. */
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 
 const ROOT = new URL('..', import.meta.url).pathname;
-const SRC = join(ROOT, 'public', 'assets', 'characters', 'jbg', 'portrait.webp');
+const SRC = join(ROOT, 'public', 'assets', 'characters', 'roulian', 'portrait.webp');
 const OUT = join(ROOT, 'public', 'icons');
 
 /** Fond violet, cadre jaune et noir façon pixel, portrait au centre. */

@@ -1,9 +1,9 @@
 /* Affichage d'un niveau : caméra, ciel, décor, sol, objets, relous, amis, effets et visée. */
 import { enemyFrame, pic, pose, propPic, spritePath } from '../assets';
-import { MATS, THROWER, type Mat } from '../sim/defs';
+import { MATS, type Mat } from '../sim/defs';
 import type { LevelDef, Theme } from '../sim/level';
-import { ANCHOR, GRAVITY, type Ent, type Sim } from '../sim/sim';
-import { beamTexture, drawSky, groundTile, groundTop, overlay, rng, TEX, THEMES } from './art';
+import { BARREL, CANNON, GRAVITY, muzzle, type Ent, type Sim } from '../sim/sim';
+import { blockTexture, cannonArt, drawSky, groundTile, groundTop, overlay, rng, TEX, THEMES } from './art';
 
 interface Particle {
   x: number;
@@ -36,10 +36,10 @@ interface FloatText {
 
 /** Ce que le jeu demande d'afficher en plus de la simulation. */
 export interface Scene {
-  /** Pose du lanceur. */
-  throwerPose: string;
-  /** Ami posé dans les mains du lanceur (ou tiré pendant la visée). */
-  loaded?: { id: string; x: number; y: number; hop: number };
+  /** Canon : angle du fût (radians) et recul après le tir (0 à 1). */
+  cannon: { angle: number; recoil: number };
+  /** Ami qui saute dans le canon (`hop` de 0 à 1), puis attend dedans. */
+  loaded?: { id: string; hop: number };
   /** Visée en cours : vitesse de lancer. */
   aim?: { vx: number; vy: number; power: number };
   /** Amis qui attendent leur tour (après celui chargé). */
@@ -66,7 +66,16 @@ export class Renderer {
   /** Caméra : x, y du coin bas gauche (m) et échelle (px/m). */
   cam = { x: -6, y: -2, s: 30 };
   private target = { x: -6, y: -2, s: 30 };
-  private bounds = { x0: -6, x1: 40, y1: 12 };
+  private bounds = { x0: -5, x1: 40, y1: 12 };
+  /**
+   * Caméra façon jeu de lancer : travelling d'ouverture (de la structure vers le canon), visée près du
+   * canon avec un relou visible au bord, suivi de l'ami en vol, pause sur l'impact, puis retour au canon.
+   * Le joueur peut aussi faire glisser la vue et zoomer.
+   */
+  private mode: 'intro' | 'aim' | 'follow' | 'watch' | 'free' = 'aim';
+  private modeT = 0;
+  private introFrom = { x: 0, s: 30 };
+  private free = { x: 0, s: 30 };
   private shake = 0;
   private particles: Particle[] = [];
   private texts: FloatText[] = [];
@@ -106,7 +115,8 @@ export class Renderer {
       x1 = Math.max(x1, p.x + Math.max(e.w, e.h) / 2);
       y1 = Math.max(y1, p.y + e.h / 2);
     }
-    this.bounds = { x0: -6.5, x1: x1 + 2.5, y1: y1 + 3.5 };
+    this.bounds = { x0: -5, x1: x1 + 2.5, y1: y1 + 2 };
+    this.level = sim;
     // décor : quelques objets de la banque, derrière les structures
     const art = THEMES[theme];
     const r = rng(level.id.charCodeAt(0) * 97 + level.id.charCodeAt(2) * 13);
@@ -116,7 +126,8 @@ export class Renderer {
     while (x < this.bounds.x1 + 30) {
       const [id, file, h] = art.decor[i % art.decor.length]!;
       const busy = x > 9 && x < x1 && h > 2.5;
-      const nearThrower = x > -6 && x < 3;
+      // la zone du canon reste dégagée (seuls de petits décors y poussent)
+      const nearThrower = x > -8 && x < (h > 1.6 ? 9 : 3);
       if (!nearThrower && (!busy || r() < 0.35))
         this.decor.push({ pic: [id, file], x, h: h * (0.85 + r() * 0.3), dark: busy ? 0.55 : 0.8 });
       x += 3 + r() * 5;
@@ -125,31 +136,145 @@ export class Renderer {
     this.fitNow();
   }
 
+  private level: Sim | null = null;
+
   private fitNow() {
-    this.fit();
-    this.cam = { ...this.target };
+    const t = this.level ? this.aimView(this.level) : { x: -5, s: 30 };
+    this.cam = { x: t.x, y: this.groundY(t.s), s: t.s };
+    this.target = { ...this.cam };
   }
 
-  /**
-   * Cadre le niveau entier ; avec `follow` (l'ami en vol), zoome et suit l'ami tant que le reste
-   * de l'action reste lisible, comme une caméra de foot.
-   */
-  fit(follow?: { x: number; y: number }) {
+  private groundY(s: number) {
+    return -(this.margins.bottom + 8) / s;
+  }
+
+  private availH() {
+    return this.H - this.margins.top - this.margins.bottom - 8;
+  }
+
+  /** Vue de visée : le canon à gauche, et au moins le premier relou visible à droite. */
+  private aimView(sim: Sim) {
+    let ex = this.bounds.x1;
+    for (const e of sim.ents)
+      if (e.kind === 'enemy' && !e.dead) ex = Math.min(ex, e.body.getPosition().x + e.w / 2);
+    const need = Math.min(Math.max(ex + 1.5 - this.bounds.x0, 14), 30);
+    const s = Math.max(this.W / need, this.fitAll());
+    return { x: this.bounds.x0, s };
+  }
+
+  /** Échelle qui montre tout le niveau (zoom arrière maximal). */
+  private fitAll() {
     const b = this.bounds;
-    const ground = this.margins.bottom + 8;
-    const availH = this.H - this.margins.top - ground;
-    const s0 = Math.max(6, Math.min(this.W / (b.x1 - b.x0), availH / b.y1));
-    const x0 = b.x0 - Math.max(0, (this.W / s0 - (b.x1 - b.x0)) / 2) * 0.4;
-    if (!follow) {
-      this.target = { x: x0, y: -ground / s0, s: s0 };
+    return Math.max(6, Math.min(this.W / (b.x1 + 2 - b.x0), this.availH() / b.y1));
+  }
+
+  /** Vue de la structure : son bord droit, assez haut pour tout voir. */
+  private structureView(s0: number) {
+    const s = Math.max(this.fitAll(), Math.min(s0, this.availH() / this.bounds.y1));
+    return { x: Math.max(this.bounds.x0, this.bounds.x1 + 1 - this.W / s), s };
+  }
+
+  /** Ouverture du niveau : on part de la structure et on glisse jusqu'au canon. */
+  startIntro(sim: Sim) {
+    const a = this.aimView(sim);
+    const from = this.structureView(a.s);
+    this.introFrom = from;
+    this.cam = { x: from.x, y: this.groundY(from.s), s: from.s };
+    this.mode = 'intro';
+    this.modeT = 0;
+  }
+
+  get introRunning() {
+    return this.mode === 'intro';
+  }
+
+  skipIntro() {
+    if (this.mode === 'intro') this.mode = 'aim';
+  }
+
+  /** Le joueur fait glisser la vue (px CSS). */
+  panBy(dx: number) {
+    if (this.mode !== 'free') this.free = { x: this.target.x, s: this.target.s };
+    this.mode = 'free';
+    this.free.x -= dx / this.free.s;
+    this.clampFree();
+  }
+
+  /** Le joueur zoome autour d'un point de l'écran. */
+  zoomAt(factor: number, px: number) {
+    if (this.mode !== 'free') this.free = { x: this.target.x, s: this.target.s };
+    this.mode = 'free';
+    const wx = px / this.free.s + this.free.x;
+    const max = this.level ? this.aimView(this.level).s * 1.6 : 80;
+    this.free.s = Math.min(max, Math.max(this.fitAll(), this.free.s * factor));
+    this.free.x = wx - px / this.free.s;
+    this.clampFree();
+  }
+
+  private clampFree() {
+    const viewW = this.W / this.free.s;
+    this.free.x = Math.min(
+      Math.max(this.free.x, this.bounds.x0 - 2),
+      Math.max(this.bounds.x0, this.bounds.x1 + 3 - viewW),
+    );
+  }
+
+  /** Un ami vient de partir : la caméra le suit. */
+  launched() {
+    this.mode = 'follow';
+    this.modeT = 0;
+  }
+
+  /** Retour au canon (pour viser). */
+  backToCannon() {
+    this.mode = 'aim';
+  }
+
+  private updateCamera(sim: Sim, dt: number) {
+    this.modeT += dt;
+    const aim = this.aimView(sim);
+    let lead: { x: number; y: number } | undefined;
+    for (const e of sim.flying) {
+      const p = e.body.getPosition();
+      if (!lead || p.x > lead.x) lead = { x: p.x, y: p.y };
+    }
+    if (this.mode === 'intro') {
+      // pause sur la structure, puis glissement jusqu'au canon
+      const hold = 1.1;
+      const dur = 2.2;
+      const k = Math.min(1, Math.max(0, (this.modeT - hold) / dur));
+      const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+      const s = this.introFrom.s + (aim.s - this.introFrom.s) * e;
+      const x = this.introFrom.x + (aim.x - this.introFrom.x) * e;
+      this.cam = { x, y: this.groundY(s), s };
+      this.target = { ...this.cam };
+      if (k >= 1) this.mode = 'aim';
       return;
     }
-    // zoom limité : l'ami et 3 m au-dessus de lui restent à l'écran
-    let s = Math.min(s0 * 1.55, availH / Math.max(b.y1 * 0.7, follow.y + 3));
-    s = Math.max(s, Math.min(s0, availH / (follow.y + 3)));
-    const viewW = this.W / s;
-    const x = Math.min(Math.max(follow.x - viewW * 0.42, b.x0), Math.max(b.x0, b.x1 + 4 - viewW));
-    this.target = { x, y: -ground / s, s };
+    if (this.mode === 'follow' && !lead) {
+      this.mode = 'watch';
+      this.modeT = 0;
+    }
+    if (this.mode === 'watch' && sim.phase === 'aim' && this.modeT > 1.6) this.mode = 'aim';
+    if (lead && this.mode !== 'free') this.mode = 'follow';
+    let x = this.target.x;
+    let s = this.target.s;
+    if (this.mode === 'aim') ({ x, s } = aim);
+    else if (this.mode === 'free') ({ x, s } = this.free);
+    else if (this.mode === 'follow' && lead) {
+      s = Math.max(this.fitAll(), Math.min(aim.s, this.availH() / (lead.y + 2.5)));
+      const viewW = this.W / s;
+      x = Math.min(
+        Math.max(lead.x - viewW * 0.38, this.bounds.x0),
+        Math.max(this.bounds.x0, this.bounds.x1 + 3 - viewW),
+      );
+    } else if (this.mode === 'watch' && (sim.phase === 'won' || sim.phase === 'lost'))
+      ({ x, s } = this.structureView(aim.s));
+    this.target = { x, y: this.groundY(s), s };
+    const k = Math.min(1, dt * (this.mode === 'follow' ? 4 : this.mode === 'free' ? 12 : 2.4));
+    this.cam.x += (this.target.x - this.cam.x) * k;
+    this.cam.s += (this.target.s - this.cam.s) * k;
+    this.cam.y = this.groundY(this.cam.s);
   }
 
   /* ------------------------------------------------------------ effets */
@@ -298,17 +423,7 @@ export class Renderer {
 
   draw(sim: Sim, scene: Scene, dt: number) {
     this.time += dt;
-    // caméra : suit l'ami s'il sort du cadre
-    let lead: { x: number; y: number } | undefined;
-    for (const e of sim.flying) {
-      const p = e.body.getPosition();
-      if (!lead || p.x > lead.x) lead = { x: p.x, y: p.y };
-    }
-    this.fit(sim.phase === 'won' || sim.phase === 'lost' ? undefined : lead);
-    const k = Math.min(1, dt * (lead ? 2.2 : 1.6));
-    this.cam.x += (this.target.x - this.cam.x) * k;
-    this.cam.y += (this.target.y - this.cam.y) * k;
-    this.cam.s += (this.target.s - this.cam.s) * k;
+    this.updateCamera(sim, dt);
 
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -330,7 +445,7 @@ export class Renderer {
     for (const e of sim.ents) if (!e.dead && e.kind === 'block' && e.objDef?.fixed) this.drawBlock(e);
     for (const e of sim.ents) if (!e.dead && e.kind === 'block' && !e.objDef?.fixed) this.drawBlock(e);
     for (const e of sim.ents) if (!e.dead && e.kind === 'enemy') this.drawEnemy(e, sim);
-    this.drawThrower(scene);
+    this.drawCannon(scene);
     for (const e of sim.ents)
       if (!e.dead && e.kind !== 'block' && e.kind !== 'enemy') this.drawProjectile(e, sim);
     this.updateParticles(dt);
@@ -538,7 +653,14 @@ export class Renderer {
       if (def.special?.type === 'gold' && Math.random() < 0.04)
         this.stars(p.x + (Math.random() - 0.5) * e.w, p.y + e.h * 0.4, 1, '#fff2a8');
     } else {
-      this.drawPixel(beamTexture(def.mat, e.w, e.h, this.stage(e), !!e.frozen), p.x, p.y, e.w, e.h, a);
+      this.drawPixel(
+        blockTexture(def.mat, e.w, e.h, def.shape, this.stage(e), !!e.frozen),
+        p.x,
+        p.y,
+        e.w,
+        e.h,
+        a,
+      );
     }
   }
 
@@ -582,40 +704,55 @@ export class Renderer {
     void sim;
   }
 
-  private drawThrower(scene: Scene) {
+  private drawCannon(scene: Scene) {
     const ctx = this.ctx;
-    // les amis qui attendent, en file derrière le lanceur
+    // les amis qui attendent, en file derrière le canon
     scene.waiting.forEach((id, i) => {
       const img = pose(id, scene.celebrate ? 'win' : 'idle');
       if (!img) return;
-      const h = 1.45;
+      const h = 1.5;
       const w = (h * img.width) / img.height;
       const hop = scene.celebrate ? Math.abs(Math.sin(this.time * 6 + i)) * 0.4 : 0;
-      this.drawPic(img, -2.2 - i * 1.05, h / 2 + hop, w, h);
+      this.drawPic(img, -2.4 - i * 1.1, h / 2 + hop, w, h);
     });
-    const t = pose(THROWER, scene.throwerPose);
-    if (t) {
-      const h = scene.throwerPose === 'crouch' ? 1.65 : 1.95;
-      const w = (h * t.width) / t.height;
-      this.drawPic(t, -0.55, h / 2, w, h);
+    const art = cannonArt();
+    const a = scene.cannon.angle;
+    const dir = { x: Math.cos(a), y: Math.sin(a) };
+    const back = scene.cannon.recoil * 0.45;
+    // roue arrière, affût, fût, roue avant
+    this.drawPixel(art.wheel, CANNON.x - 0.55, 0.5, 1, 1, -this.time * 0);
+    this.drawPixel(art.carriage, CANNON.x - 0.1, 0.72, 1.7, 0.75, 0);
+    const len = 2.3;
+    const axis = 0.7 - back;
+    // l'ami chargé : sa tête dépasse de la bouche du canon
+    const L = scene.loaded;
+    const mouth = { x: CANNON.x + dir.x * (BARREL - back), y: CANNON.y + dir.y * (BARREL - back) };
+    if (L && L.hop >= 1) {
+      const face = pose(L.id, 'portrait');
+      if (face) {
+        const r = 0.36;
+        const cx = mouth.x + dir.x * 0.05;
+        const cy = mouth.y + dir.y * 0.05 + 0.12;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.sx(cx), this.sy(cy), r * this.cam.s, 0, Math.PI * 2);
+        ctx.clip();
+        this.drawPic(face, cx, cy, r * 2.1, r * 2.1);
+        ctx.restore();
+      }
     }
-    if (scene.loaded) {
-      const L = scene.loaded;
+    this.drawPixel(art.barrel, CANNON.x + dir.x * axis, CANNON.y + dir.y * axis, len, 0.8, a);
+    this.drawPixel(art.wheel, CANNON.x + 0.35, 0.5, 1, 1, 0);
+    if (L && L.hop < 1) {
+      // saut de la file jusque dans le canon
       const img = pose(L.id, 'jump');
       if (img) {
-        const h = 1.35;
-        const w = (h * img.width) / img.height;
-        this.drawPic(img, L.x, L.y + Math.sin(L.hop * Math.PI) * 0.6, w, h);
-      }
-      if (scene.aim) {
-        // élastique d'énergie entre le lanceur et l'ami
-        ctx.strokeStyle = 'rgba(255,240,180,0.9)';
-        ctx.lineWidth = Math.max(2, this.cam.s * 0.08);
-        ctx.beginPath();
-        ctx.moveTo(this.sx(ANCHOR.x - 0.3), this.sy(ANCHOR.y));
-        ctx.lineTo(this.sx(L.x), this.sy(L.y));
-        ctx.lineTo(this.sx(ANCHOR.x + 0.3), this.sy(ANCHOR.y));
-        ctx.stroke();
+        const k = L.hop;
+        const from = { x: -2.4, y: 0.75 };
+        const x = from.x + (mouth.x - from.x) * k;
+        const y = from.y + (mouth.y - from.y) * k + Math.sin(k * Math.PI) * 1.4;
+        const h = 1.4 * (1 - k * 0.45);
+        this.drawPic(img, x, y, (h * img.width) / img.height, h);
       }
     }
   }
@@ -678,19 +815,20 @@ export class Renderer {
 
   private drawAim(aim: NonNullable<Scene['aim']>) {
     const ctx = this.ctx;
-    for (let i = 1; i < 26; i++) {
-      const t = i * 0.055;
-      const x = ANCHOR.x + aim.vx * t;
-      const y = ANCHOR.y + aim.vy * t + 0.5 * GRAVITY * t * t;
-      const r = Math.max(2, 6 - i * 0.18);
-      ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.6)';
-      ctx.fillRect(
-        Math.round(this.sx(x) - r / 2),
-        Math.round(this.sy(y) - r / 2),
-        Math.round(r),
-        Math.round(r),
-      );
+    const m = muzzle(aim.vx, aim.vy);
+    for (let i = 1; i < 22; i++) {
+      const t = i * 0.06;
+      const x = m.x + aim.vx * t;
+      const y = m.y + aim.vy * t + 0.5 * GRAVITY * t * t;
       if (y < 0) break;
+      // gros points blancs cernés de noir, de plus en plus petits
+      const r = Math.max(3, this.cam.s * (0.2 - i * 0.006));
+      const X = Math.round(this.sx(x) - r / 2);
+      const Y = Math.round(this.sy(y) - r / 2);
+      ctx.fillStyle = '#1a1030';
+      ctx.fillRect(X - 2, Y - 2, Math.round(r) + 4, Math.round(r) + 4);
+      ctx.fillStyle = i % 2 ? '#ffffff' : '#ffd23f';
+      ctx.fillRect(X, Y, Math.round(r), Math.round(r));
     }
   }
 
