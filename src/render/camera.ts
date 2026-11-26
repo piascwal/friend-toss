@@ -9,6 +9,10 @@ import type { View } from './view';
 type Mode = 'intro' | 'aim' | 'follow' | 'watch' | 'free' | 'all';
 type Frame = { x: number; s: number };
 
+/** Après un tir : temps de calme (s) avant de revenir au canon, et attente maximale. */
+const RETURN_CALM = 1.5;
+const RETURN_MAX = 4;
+
 /** Marges de l'interface (px CSS) : rien d'important n'y est placé. */
 const MARGIN_TOP = 64;
 const MARGIN_BOTTOM = 72;
@@ -21,6 +25,10 @@ export class Camera {
   private free: Frame = { x: -5, s: 30 };
   /** Étendue du niveau (m) : du canon au dernier objet, et hauteur maximale. */
   private bounds = { x0: -5, x1: 40, y1: 12 };
+  /** Un tir est en cours (un ami ou un projectile vole). */
+  private inShot = false;
+  /** Temps écoulé depuis la fin du tir, tant que la caméra n'est pas revenue au canon (null : rien à faire). */
+  private sinceShot: number | null = null;
 
   constructor(private view: View) {}
 
@@ -87,7 +95,7 @@ export class Camera {
     if (this.mode === 'intro') return this.updateIntro(aim);
     const lead = this.leadProjectile(sim);
     if (this.mode === 'follow' && !lead) this.setMode('watch');
-    if (this.mode === 'watch' && sim.phase === 'aim' && this.modeT > 1.6) this.setMode('aim');
+    this.returnAfterShot(sim, !!lead, dt);
     if (lead && this.mode !== 'free' && this.mode !== 'all') this.mode = 'follow';
     if (this.mode === 'all') this.target = { x: this.bounds.x0, s: this.fitAll() };
     else if (this.mode === 'aim') this.target = aim;
@@ -100,6 +108,29 @@ export class Camera {
     cam.x += (this.target.x - cam.x) * k;
     cam.s += (this.target.s - cam.s) * k;
     cam.y = this.groundY(cam.s);
+  }
+
+  /**
+   * Quand le tir est fini (l'ami est parti en fumée), on attend que tout soit calme, puis la caméra revient
+   * au canon pour le tir suivant, même si le joueur avait fait glisser la vue entre-temps.
+   */
+  private returnAfterShot(sim: Sim, flying: boolean, dt: number) {
+    if (flying) {
+      this.inShot = true;
+      this.sinceShot = null;
+      return;
+    }
+    if (this.inShot) {
+      this.inShot = false;
+      this.sinceShot = 0;
+    }
+    if (this.sinceShot === null || this.mode === 'all') return;
+    this.sinceShot += dt;
+    const calm = sim.calmTime >= RETURN_CALM || this.sinceShot >= RETURN_MAX;
+    if (calm && sim.phase === 'aim') {
+      this.sinceShot = null;
+      this.setMode('aim');
+    }
   }
 
   /* ------------------------------------------------------------ cadrages */

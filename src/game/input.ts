@@ -34,7 +34,8 @@ export class Input {
   aim: Aim | null = null;
   private drag: { id: number; x: number; y: number } | null = null;
   private pointers = new Map<number, { x: number; y: number }>();
-  private pan: { id: number; x: number } | null = null;
+  /** Glissement de la vue : il ne commence qu'au-delà de quelques pixels (un simple toucher ne bouge rien). */
+  private pan: { id: number; x: number; moving: boolean } | null = null;
   private pinch: { d: number } | null = null;
   private off: (() => void)[] = [];
   paused = false;
@@ -85,7 +86,7 @@ export class Input {
     if (this.act.canAim() && this.act.onCannon(x, y)) {
       this.drag = { id: e.pointerId, x, y };
       this.updateAim(x, y);
-    } else this.pan = { id: e.pointerId, x };
+    } else this.pan = { id: e.pointerId, x, moving: false };
   }
 
   private move(e: PointerEvent) {
@@ -99,6 +100,8 @@ export class Input {
       this.pinch.d = d;
     } else if (this.drag?.id === e.pointerId) this.updateAim(x, y);
     else if (this.pan?.id === e.pointerId) {
+      if (!this.pan.moving && Math.abs(x - this.pan.x) < 10) return;
+      this.pan.moving = true;
       this.act.pan(x - this.pan.x);
       this.pan.x = x;
     }

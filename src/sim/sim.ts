@@ -126,6 +126,11 @@ export class Sim {
     return this.ents.find((e) => e.kind === 'friend' && !e.dead && !e.powerUsed);
   }
 
+  /** Depuis combien de temps (s) plus rien ne bouge dans le niveau. */
+  get calmTime(): number {
+    return this.calmFor;
+  }
+
   get canLaunch(): boolean {
     return this.phase === 'aim' && this.queue.length > 0;
   }
