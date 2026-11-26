@@ -1,5 +1,5 @@
 /* Présentation d'un niveau : conseil, nouveautés (amis, objets, relous), bande, ami à libérer. */
-import { enemyStillUrl, poseUrl, spriteUrl } from '../assets';
+import { enemyStillUrl, headUrl, spriteUrl } from '../assets';
 import { UNLOCKS, type WorldDef } from '../levels';
 import type { Progress } from '../save';
 import { ENEMIES, type EnemyDef, FRIEND_BY_ID, OBJECTS, type ObjDef } from '../sim/defs';
@@ -7,6 +7,8 @@ import type { LevelDef } from '../sim/level';
 import { show, imgTag, beamSwatch } from './common';
 
 interface Novelty {
+  /** Nouvel ami : sa présentation animée peut être jouée. */
+  friend?: string;
   key: string;
   img: string;
   name: string;
@@ -23,10 +25,11 @@ export function novelties(level: LevelDef, p: Progress): Novelty[] {
     if (!p.seen.includes(key))
       out.push({
         key,
-        img: poseUrl(id, f.castPose ?? 'jump'),
+        img: headUrl(id, 'power'),
         name: `${f.name} · ${f.powerName}`,
         text: f.desc,
         kind: 'Ami',
+        friend: id,
       });
   }
   for (const k of new Set(level.items.map((i) => i.k))) {
@@ -63,11 +66,12 @@ export function introScreen(
   best: number,
   onGo: () => void,
   onBack: () => void,
+  onShowcase: (id: string) => void,
 ) {
   // trois nouveautés au plus : les autres seront présentées au niveau suivant
   const news = novelties(level, p).slice(0, 3);
   const band = level.friends
-    .map((id) => `<img src="${poseUrl(id, 'portrait')}" title="${FRIEND_BY_ID[id]?.name}" alt="">`)
+    .map((id) => `<img src="${headUrl(id)}" title="${FRIEND_BY_ID[id]?.name}" alt="">`)
     .join('');
   const free = UNLOCKS[level.id];
   const el = show(
@@ -76,7 +80,7 @@ export function introScreen(
         <div class="card-head"><span class="wnum">${world.name}</span><h2>${level.id} · ${level.name}</h2></div>
         ${level.tip ? `<p class="tip">💡 ${level.tip}</p>` : ''}
         <div class="intro-band"><h3>TA BANDE</h3><div class="band">${band}</div></div>
-        ${free ? `<p class="free-note"><img src="${poseUrl(free, 'portrait')}" alt=""> ${FRIEND_BY_ID[free]?.name} est enfermé ici : gagne pour le libérer !</p>` : ''}
+        ${free ? `<p class="free-note"><img src="${headUrl(free, 'sad')}" alt=""> ${FRIEND_BY_ID[free]?.name} est enfermé ici : gagne pour le libérer !</p>` : ''}
         ${best ? `<p class="best">Record : ${best.toLocaleString('fr-FR')}</p>` : ''}
         <div class="row">
           <button class="pix-btn" data-act="back">CARTE</button>
@@ -88,7 +92,7 @@ export function introScreen(
           ? `<div class="col news"><h3>NOUVEAU</h3>${news
               .map(
                 (n) =>
-                  `<div class="new"><div class="new-img">${imgTag(n.img)}</div><div><small>${n.kind}</small><b>${n.name}</b><p>${n.text}</p></div></div>`,
+                  `<div class="new"><div class="new-img">${imgTag(n.img)}</div><div><small>${n.kind}</small><b>${n.name}</b><p>${n.text}</p>${n.friend ? `<button class="pix-btn" data-show="${n.friend}">▶ VOIR SON POUVOIR</button>` : ''}</div></div>`,
               )
               .join('')}</div>`
           : ''
@@ -98,5 +102,8 @@ export function introScreen(
   );
   el.querySelector('[data-act=go]')!.addEventListener('click', onGo);
   el.querySelector('[data-act=back]')!.addEventListener('click', onBack);
+  el.querySelectorAll<HTMLButtonElement>('[data-show]').forEach((b) =>
+    b.addEventListener('click', () => onShowcase(b.dataset.show!)),
+  );
   return news.map((n) => n.key);
 }

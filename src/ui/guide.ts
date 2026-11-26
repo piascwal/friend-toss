@@ -1,5 +1,5 @@
 /* Le guide : la bande, les relous, les objets (vignettes à gauche, fiche à droite). */
-import { enemyStillUrl, poseUrl, spriteUrl } from '../assets';
+import { enemyStillUrl, headUrl, spriteUrl } from '../assets';
 import { sfx } from '../audio';
 import { ALL_LEVELS, UNLOCKS } from '../levels';
 import { cannonImage } from '../render/cannon-art';
@@ -19,6 +19,8 @@ import { show, imgTag, beamSwatch } from './common';
 
 interface GuideItem {
   img: string;
+  /** Ami libéré : sa présentation animée peut être rejouée. */
+  friend?: string;
   name: string;
   sub: string;
   text: string;
@@ -26,7 +28,7 @@ interface GuideItem {
   locked?: boolean;
 }
 
-export function guideScreen(p: Progress, onBack: () => void) {
+export function guideScreen(p: Progress, onBack: () => void, onShowcase: (id: string) => void) {
   const have = new Set(unlockedFriends(p));
   const where = (id: string) => Object.entries(UNLOCKS).find(([, f]) => f === id)?.[0];
   const friends: GuideItem[] = [
@@ -39,14 +41,15 @@ export function guideScreen(p: Progress, onBack: () => void) {
     ...FRIENDS.map((f): GuideItem =>
       have.has(f.id)
         ? {
-            img: poseUrl(f.id, f.castPose ?? 'jump'),
+            img: headUrl(f.id, 'power'),
+            friend: f.id,
             name: f.name,
             sub: f.power === 'none' ? 'SANS POUVOIR' : up(f.powerName),
             text: f.desc,
             tip: f.tip,
           }
         : {
-            img: poseUrl(f.id, 'idle'),
+            img: headUrl(f.id),
             name: '???',
             sub: 'ENFERME',
             text: `À libérer au niveau ${where(f.id) ?? '?'}.`,
@@ -101,7 +104,8 @@ export function guideScreen(p: Progress, onBack: () => void) {
     const it = items[i]!;
     thumbs.querySelectorAll('.g-thumb').forEach((t, k) => t.classList.toggle('on', k === i));
     detail.className = `g-detail${it.locked ? ' locked' : ''}`;
-    detail.innerHTML = `<div class="g-img">${imgTag(it.img)}</div><div class="g-text"><b>${it.name}</b><small>${it.sub}</small><p>${it.text}</p>${it.tip ? `<p class="g-tip">💡 ${it.tip}</p>` : ''}</div>`;
+    detail.innerHTML = `<div class="g-img">${imgTag(it.img)}</div><div class="g-text"><b>${it.name}</b><small>${it.sub}</small><p>${it.text}</p>${it.tip ? `<p class="g-tip">💡 ${it.tip}</p>` : ''}${it.friend ? '<button class="pix-btn" data-act="showcase">▶ VOIR SON POUVOIR</button>' : ''}</div>`;
+    detail.querySelector('[data-act=showcase]')?.addEventListener('click', () => onShowcase(it.friend!));
   };
   const open = (tab: string) => {
     const items = tabs[tab]!;

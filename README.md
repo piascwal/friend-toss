@@ -62,6 +62,17 @@ canon et dans la file), `head_fly` (en vol), `head_power` (pouvoir), `head_hit` 
 `head_win` (victoire), `head_sad` (défaite). Tant qu'une image manque, il affiche le portrait de l'ami
 dans un rond à sa couleur.
 
+Le jeu ne montre **jamais les amis en pied** : partout (carte, présentation des niveaux, guide, HUD,
+file d'attente, cage, résultats), c'est la grosse tête, ou à défaut le portrait.
+
+### Présentation animée d'un ami
+
+Quand un ami est libéré, une présentation « waouh » le révèle (rayons, sa tête qui surgit en riant,
+confettis, son nom et son pouvoir), puis une mini-scène jouée par le moteur montre son pouvoir : le canon
+tire tout seul et le pouvoir se déclenche au bon moment, au ralenti. On peut la revoir depuis le guide et
+depuis la présentation d'un niveau. Les mini-scènes sont dans `src/levels/demos.ts` ; leurs tirs ont été
+trouvés par le solveur (`npm run demos`) et `tests/demos.test.ts` vérifie qu'ils font toujours mouche.
+
 Pour fournir ces images : ouvrir l'atelier de la banque (https://piascwal.github.io/sprite-bank/),
 choisir un ami, générer chaque pose « Grosse tête » avec son prompt, l'importer, puis **Exporter les
 changements** et déposer le `.zip` dans `characters/` de la banque. Une fois la banque à jour sur `main`,
@@ -114,7 +125,8 @@ src/sim/                 simulation (sans navigateur)
   setup.ts               construction d'un niveau dans le monde physique
   sim.ts                 un niveau en cours : tir, dégâts, explosions, score, victoire
   powers.ts              les pouvoirs des amis (une fonction par pouvoir)
-src/levels/              les niveaux : un fichier par monde, et l'outil de construction (build.ts)
+src/levels/              les niveaux : un fichier par monde, l'outil de construction (build.ts),
+                         les mini-scènes de démonstration des pouvoirs (demos.ts)
 src/render/              affichage canvas
   view.ts                coordonnées monde ↔ écran, dessin des images
   camera.ts              mise en scène : ouverture, visée, suivi, zoom au doigt
@@ -124,8 +136,10 @@ src/render/              affichage canvas
   effects.ts             particules et textes flottants
   textures.ts, …         pixel art dessiné par le jeu (modules, TNT, sol, canon)
 src/game/                une partie : orchestration (game.ts), gestes (input.ts), HUD (hud.ts),
-                         effets et sons de chaque événement (feedback.ts), préchargement
-src/ui/                  écrans HTML : un fichier par écran (titre, carte, intro, pause, résultats, guide)
+                         effets et sons de chaque événement (feedback.ts), démo d'un pouvoir (demo.ts),
+                         préchargement
+src/ui/                  écrans HTML : un fichier par écran (titre, carte, intro, pause, résultats, guide,
+                         présentation animée d'un ami)
 tests/                   niveaux bien construits ; solveur (tests/solve/)
 ```
 

@@ -1,7 +1,7 @@
 /* Ce que le joueur voit et entend quand il se passe quelque chose : chaque événement de la simulation
    devient des effets (débris, fumée, flashs, textes) et un son. Les grosses explosions ralentissent
    le temps un instant et secouent l'écran. */
-import { pose } from '../assets';
+import { head, pose } from '../assets';
 import { sfx } from '../audio';
 import { CANNON, muzzle } from '../sim/constants';
 import { FRIEND_BY_ID } from '../sim/defs';
@@ -85,7 +85,7 @@ export function playEvents(events: SimEvent[], t: FeedbackTarget) {
       case 'free':
         fx.stars(ev.x, ev.y, 18);
         fx.text(ev.x, ev.y + 2.2, `${FRIEND_BY_ID[ev.friend]?.name ?? ''} LIBERE !`, '#ffd23f', 18, 2.2);
-        fx.sprite(pose(ev.friend, 'win'), ev.x, ev.y + 0.6, 0, 1.2, 1.2, 2);
+        fx.sprite(head(ev.friend, 'win'), ev.x, ev.y + 0.6, 0, 1.2, 1.5, 2);
         sfx.free();
         break;
       case 'gold':
@@ -136,7 +136,7 @@ function explosion(fx: Effects, x: number, y: number, r: number, confetti: boole
 function powerFx(fx: Effects, e: Ent, x: number, y: number, target?: { x: number; y: number }) {
   const f = e.friend!;
   sfx.power();
-  fx.text(x, y + 1.4, `${up(f.powerName)} !`, '#ffd23f', 14, 1);
+  fx.text(x, y + 1.6, `${up(f.powerName)} !`, '#ffd23f', 22, 1.4);
   fx.ring(x, y, 1.2, f.color, 0.3);
   if (f.power === 'blast') {
     const wave = pose(f.id, 'pj_palm_wave');

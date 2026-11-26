@@ -4,8 +4,9 @@ import './style.css';
 import { loadCharacters, loadNpcs } from './assets';
 import { ALL_LEVELS, LEVEL_BY_ID, UNLOCKS } from './levels';
 import { Game, type Result } from './game/game';
-import { preloadLevel } from './game/preload';
+import { preloadLevel, preloadShowcase } from './game/preload';
 import { FRIENDS } from './sim/defs';
+import type { Theme } from './sim/level';
 import { autoFullscreen, isPortrait, setupPwa } from './pwa';
 import { loadProgress, saveProgress, type Progress } from './save';
 import {
@@ -16,6 +17,7 @@ import {
   mapScreen,
   pauseScreen,
   resultScreen,
+  showcaseScreen,
   titleScreen,
 } from './ui';
 
@@ -32,7 +34,22 @@ function stopGame() {
 
 function showMap(focus?: string) {
   stopGame();
-  mapScreen(progress, openLevel, () => guideScreen(progress, () => showMap()), focus);
+  mapScreen(progress, openLevel, openGuide, focus);
+}
+
+function openGuide() {
+  guideScreen(
+    progress,
+    () => showMap(),
+    (id) => void showcase(id, false, 'camping', openGuide),
+  );
+}
+
+/** Présentation animée d'un ami (libéré à l'instant, ou revue depuis le guide ou un niveau). */
+async function showcase(id: string, isNew: boolean, theme: Theme, then: () => void) {
+  loadingScreen();
+  await preloadShowcase(id);
+  showcaseScreen(id, isNew, theme, then);
 }
 
 async function openLevel(id: string) {
@@ -51,6 +68,7 @@ async function openLevel(id: string) {
       play(id);
     },
     () => showMap(id),
+    (fid) => void showcase(fid, false, level.world.theme, () => void openLevel(id)),
   );
 }
 
@@ -93,16 +111,22 @@ function finish(id: string, r: Result) {
   }
   const i = ALL_LEVELS.findIndex((l) => l.id === id);
   const next = ALL_LEVELS[i + 1];
-  resultScreen(
-    LEVEL_BY_ID[id]!,
-    r,
-    best,
-    newFriend,
-    !!next,
-    () => next && openLevel(next.id),
-    () => play(id),
-    () => showMap(next && r.won ? next.id : id),
-  );
+  const results = () =>
+    resultScreen(
+      LEVEL_BY_ID[id]!,
+      r,
+      best,
+      newFriend,
+      !!next,
+      () => next && openLevel(next.id),
+      () => play(id),
+      () => showMap(next && r.won ? next.id : id),
+    );
+  // un ami vient d'être libéré : sa présentation animée d'abord, puis les résultats
+  if (newFriend) {
+    game?.setPaused(true);
+    void showcase(newFriend, true, LEVEL_BY_ID[id]!.world.theme, results);
+  } else results();
 }
 
 async function boot() {

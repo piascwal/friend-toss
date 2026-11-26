@@ -1,6 +1,6 @@
 /* Le HUD d'une partie (HTML par-dessus le canevas) : relous restants, barre du boss, score et étoiles,
    file des amis, rappel du pouvoir pendant le vol. */
-import { enemyStillUrl, poseUrl } from '../assets';
+import { enemyStillUrl, headUrl } from '../assets';
 import type { WorldDef } from '../levels';
 import { FRIEND_BY_ID } from '../sim/defs';
 import type { Ent } from '../sim/entity';
@@ -121,7 +121,7 @@ export class Hud {
         const f = FRIEND_BY_ID[id]!;
         const cur = i === 0 && sim.phase === 'aim';
         return `<div class="q-friend${cur ? ' current' : ''}" style="--fc:${f.color}" title="${f.name} — ${f.powerName} : ${f.desc}">
-          <img src="${poseUrl(id, 'portrait')}" alt="">
+          <img src="${headUrl(id)}" alt="">
           ${cur ? `<div class="q-info"><b>${f.name}</b><span>${f.power === 'none' ? 'Sans pouvoir' : f.powerName}</span></div>` : ''}
         </div>`;
       })

@@ -78,17 +78,6 @@ interface CharacterFile {
 
 const characters = new Map<string, CharacterFile>();
 
-/** Poses de repli quand une pose manque à un personnage. */
-const FALLBACK: Record<string, string[]> = {
-  fall: ['jump', 'idle'],
-  hit: ['fall', 'idle'],
-  down: ['fall', 'idle'],
-  crouch: ['idle'],
-  punch_heavy: ['idle'],
-  win: ['idle'],
-  jump: ['idle'],
-};
-
 export async function loadCharacters(ids: string[]) {
   await Promise.all(
     ids.map(async (id) => {
@@ -103,28 +92,35 @@ export function characterInfo(id: string): CharacterFile | undefined {
 }
 
 /** Chemin de l'image d'une pose (avec replis). */
+/** Chemin d'une image d'un ami (effet de pouvoir…), sans repli : jamais le personnage en pied à la place. */
 export function posePath(id: string, pose: string): string | null {
-  const c = characters.get(id);
-  if (!c) return null;
-  for (const p of [pose, ...(FALLBACK[pose] ?? ['idle'])])
-    if (c.files[p]) return `characters/${id}/${c.files[p]}`;
-  return null;
+  const file = characters.get(id)?.files[pose];
+  return file ? `characters/${id}/${file}` : null;
 }
 
-/** Image d'une pose seulement si le personnage l'a (sans repli) : pour les looks optionnels (grosses têtes). */
-export function exactPose(id: string, name: string): Pic | null {
-  const file = characters.get(id)?.files[name];
-  return file ? pic(`characters/${id}/${file}`) : null;
+/** Expressions des grosses têtes (poses `head_…` de la banque). */
+export type Mood = 'ready' | 'fly' | 'power' | 'hit' | 'win' | 'sad';
+
+/**
+ * Tête d'un ami avec une expression : la grosse tête de la banque, sinon sa tête « prête », sinon son
+ * portrait. Le jeu ne montre jamais les amis en pied.
+ */
+export function headPath(id: string, mood: Mood = 'ready'): string | null {
+  const c = characters.get(id);
+  const file = c?.files[`head_${mood}`] ?? c?.files.head_ready ?? c?.files.portrait;
+  return file ? `characters/${id}/${file}` : null;
+}
+
+export const headUrl = (id: string, mood: Mood = 'ready') => BASE + (headPath(id, mood) ?? '');
+
+export function head(id: string, mood: Mood = 'ready'): Pic | null {
+  const path = headPath(id, mood);
+  return path ? pic(path) : null;
 }
 
 export function pose(id: string, name: string): Pic | null {
   const path = posePath(id, name);
   return path ? pic(path) : null;
-}
-
-export function poseUrl(id: string, name: string): string {
-  const path = posePath(id, name);
-  return path ? BASE + path : '';
 }
 
 /* ------------------------------------------------------------ relous */

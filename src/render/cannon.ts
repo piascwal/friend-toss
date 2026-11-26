@@ -1,6 +1,5 @@
-/* Le canon et la bande qui attend son tour : le prochain ami saute dans le canon et sa tête dépasse
-   de la bouche ; pendant la visée, des points montrent le début de la trajectoire. */
-import { exactPose, pose } from '../assets';
+/* Le canon et la bande qui attend son tour (des grosses têtes posées au sol) : le prochain ami saute dans
+   le canon et sa tête dépasse de la bouche ; pendant la visée, des points montrent la trajectoire. */
 import { FRIEND_BY_ID } from '../sim/defs';
 import { BARREL, CANNON, GRAVITY, muzzle } from '../sim/constants';
 import { drawHead } from './actors';
@@ -48,38 +47,19 @@ export function drawCannon(v: View, scene: CannonScene, time: number) {
 }
 
 function drawQueue(v: View, scene: CannonScene, time: number) {
+  const mood = scene.celebrate ? 'win' : scene.sad ? 'sad' : 'ready';
   scene.waiting.forEach((id, i) => {
     const hop = scene.celebrate ? Math.abs(Math.sin(time * 6 + i)) * 0.4 : 0;
-    // grosses têtes posées au sol si la banque les a, sinon le sprite en pied
-    if (exactPose(id, 'head_ready')) {
-      const mood = scene.celebrate ? 'win' : scene.sad ? 'sad' : 'ready';
-      const bob = Math.abs(Math.sin(time * 2.5 + i)) * 0.08;
-      return drawHead(
-        v,
-        id,
-        FRIEND_BY_ID[id]?.color ?? '#fff',
-        QUEUE_X - i * 1.1,
-        0.55 + hop + bob,
-        1.1,
-        0,
-        mood,
-      );
-    }
-    const img = pose(id, scene.celebrate ? 'win' : 'idle');
-    if (!img) return;
-    const h = 1.5;
-    v.pic(img, QUEUE_X - i * 1.1, h / 2 + hop, (h * img.width) / img.height, h);
+    const bob = Math.abs(Math.sin(time * 2.5 + i)) * 0.08;
+    drawHead(v, id, FRIEND_BY_ID[id]?.color ?? '#fff', QUEUE_X - i * 1.25, 0.65 + hop + bob, 1.25, 0, mood);
   });
 }
 
-/** Saut de la file jusque dans le canon. */
+/** Saut de la file jusque dans le canon : la tête fait une cloche et rapetisse un peu. */
 function drawHop(v: View, id: string, k: number, mouth: { x: number; y: number }) {
-  const img = pose(id, 'jump');
-  if (!img) return;
   const x = QUEUE_X + (mouth.x - QUEUE_X) * k;
-  const y = 0.75 + (mouth.y - 0.75) * k + Math.sin(k * Math.PI) * 1.4;
-  const h = 1.4 * (1 - k * 0.45);
-  v.pic(img, x, y, (h * img.width) / img.height, h);
+  const y = 0.65 + (mouth.y - 0.65) * k + Math.sin(k * Math.PI) * 1.6;
+  drawHead(v, id, FRIEND_BY_ID[id]?.color ?? '#fff', x, y, 1.25 - k * 0.05, k * Math.PI * 2, 'fly');
 }
 
 /** Début de la trajectoire : gros points blancs et jaunes cernés de noir. */

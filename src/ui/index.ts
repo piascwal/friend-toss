@@ -5,4 +5,5 @@ export { introScreen, novelties } from './intro';
 export { mapScreen } from './map';
 export { pauseScreen } from './pause';
 export { resultScreen } from './result';
+export { showcaseScreen } from './showcase';
 export { titleScreen } from './title';

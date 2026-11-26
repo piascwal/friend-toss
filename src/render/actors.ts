@@ -1,6 +1,6 @@
 /* Les acteurs : modules et objets des structures, relous, amis en vol (grosse tête de la banque avec
    l'expression du moment, sinon leur portrait dans un rond à leur couleur) et projectiles de pouvoir. */
-import { enemyFrame, exactPose, pic, pose, spritePath } from '../assets';
+import { enemyFrame, pic, pose, spritePath, type Mood } from '../assets';
 import type { Ent } from '../sim/entity';
 import type { Effects } from './effects';
 import { blockTexture, overlay, tntTexture } from './textures';
@@ -20,8 +20,8 @@ export function drawBlock(v: View, fx: Effects, e: Ent, time: number) {
   const def = e.objDef!;
   const sp = def.special;
   if (sp?.type === 'cage' && e.caged) {
-    const img = pose(e.caged, 'idle');
-    if (img) v.pic(img, p.x, p.y - e.h * 0.05, (e.h * 0.85 * img.width) / img.height, e.h * 0.85, a);
+    // l'ami enfermé, l'air triste derrière les barreaux
+    drawHead(v, e.caged, '#888', p.x, p.y - e.h * 0.05, e.h * 0.7, a, 'sad');
   }
   if (sp?.type === 'rocket' && e.fuse !== undefined) rocketFlames(fx, e);
   if (e.obj === 'tnt') {
@@ -108,8 +108,7 @@ function lifeBar(v: View, x: number, y: number, w: number, r: number) {
 /** Diamètre de la tête d'un ami en vol (m) : bien plus gros que son corps physique, pour le reconnaître. */
 export const HEAD = 1.4;
 
-/** Expressions de la grosse tête (poses `head_…` de la banque). */
-export type Mood = 'ready' | 'fly' | 'power' | 'hit' | 'win' | 'sad';
+export type { Mood };
 
 /**
  * Grosse tête : la tête de l'ami avec l'expression du moment si la banque l'a, sinon son portrait dans
@@ -125,7 +124,7 @@ export function drawHead(
   angle = 0,
   mood: Mood = 'ready',
 ) {
-  const head = exactPose(id, `head_${mood}`) ?? exactPose(id, 'head_ready');
+  const head = pose(id, `head_${mood}`) ?? pose(id, 'head_ready');
   if (head) return v.pic(head, x, y, (d * 1.25 * head.width) / head.height, d * 1.25, angle);
   const ctx = v.ctx;
   const X = v.sx(x);

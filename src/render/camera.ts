@@ -6,7 +6,7 @@
 import type { Sim } from '../sim/sim';
 import type { View } from './view';
 
-type Mode = 'intro' | 'aim' | 'follow' | 'watch' | 'free';
+type Mode = 'intro' | 'aim' | 'follow' | 'watch' | 'free' | 'all';
 type Frame = { x: number; s: number };
 
 /** Marges de l'interface (px CSS) : rien d'important n'y est placé. */
@@ -59,6 +59,11 @@ export class Camera {
     this.setMode('aim');
   }
 
+  /** Toute la scène à l'écran (démonstrations). */
+  showAll() {
+    this.setMode('all');
+  }
+
   /** Le joueur fait glisser la vue (px CSS). */
   panBy(dx: number) {
     this.takeOver();
@@ -83,8 +88,9 @@ export class Camera {
     const lead = this.leadProjectile(sim);
     if (this.mode === 'follow' && !lead) this.setMode('watch');
     if (this.mode === 'watch' && sim.phase === 'aim' && this.modeT > 1.6) this.setMode('aim');
-    if (lead && this.mode !== 'free') this.mode = 'follow';
-    if (this.mode === 'aim') this.target = aim;
+    if (lead && this.mode !== 'free' && this.mode !== 'all') this.mode = 'follow';
+    if (this.mode === 'all') this.target = { x: this.bounds.x0, s: this.fitAll() };
+    else if (this.mode === 'aim') this.target = aim;
     else if (this.mode === 'free') this.target = this.free;
     else if (this.mode === 'follow' && lead) this.target = this.followFrame(lead, aim.s);
     else if (this.mode === 'watch' && (sim.phase === 'won' || sim.phase === 'lost'))

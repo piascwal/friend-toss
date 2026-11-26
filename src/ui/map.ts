@@ -1,5 +1,5 @@
 /* La carte des mondes : un monde par page (flèches, points, glisser), niveaux reliés par un chemin. */
-import { enemyStillUrl, poseUrl, propUrl } from '../assets';
+import { enemyStillUrl, headUrl, propUrl } from '../assets';
 import { ALL_LEVELS, UNLOCKS, WORLDS, type WorldDef } from '../levels';
 import { THEMES } from '../render/themes';
 import { type Progress, isOpen, totalGold, totalStars, unlockedFriends } from '../save';
@@ -24,7 +24,7 @@ export function mapScreen(p: Progress, onLevel: (id: string) => void, onGuide: (
         <div class="map-stats">
           <span class="chip"><i class="sym">★</i> ${totalStars(p)}/${ALL_LEVELS.length * 3}</span>
           <span class="chip gold"><img src="${propUrl('tonneau-or')}" alt=""> ${totalGold(p)}</span>
-          <span class="chip band"><img src="${poseUrl(MASCOT, 'portrait')}" alt=""> ${unlockedFriends(p).length}/${FRIENDS.length}</span>
+          <span class="chip band"><img src="${headUrl(MASCOT)}" alt=""> ${unlockedFriends(p).length}/${FRIENDS.length}</span>
         </div>
         <div class="map-actions">
           <button class="pix-btn" data-act="guide">GUIDE</button>
@@ -109,7 +109,7 @@ function worldPanel(w: WorldDef, p: Progress, current: string): string {
       const boss = l.enemies.find((e) => (ENEMIES[e.k] as EnemyDef).boss);
       const free = UNLOCKS[l.id];
       const badge = free
-        ? `<span class="cage-badge${st ? ' freed' : ''}" title="${st ? 'Libéré' : 'À libérer'} : ${FRIEND_BY_ID[free]?.name}"><img src="${poseUrl(free, 'portrait')}" alt=""></span>`
+        ? `<span class="cage-badge${st ? ' freed' : ''}" title="${st ? 'Libéré' : 'À libérer'} : ${FRIEND_BY_ID[free]?.name}"><img src="${headUrl(free, st ? 'win' : 'sad')}" alt=""></span>`
         : '';
       const gold = l.items.some((it) => it.k === 'tonneau-or')
         ? `<span class="gold-badge${p.gold[l.id] ? ' got' : ''}"><img src="${propUrl('tonneau-or')}" alt=""></span>`
@@ -119,7 +119,7 @@ function worldPanel(w: WorldDef, p: Progress, current: string): string {
         <span class="num">${lo ? l.id : '🔒'}</span>
         <span class="nstars">${stars(st)}</span>
         ${badge}${gold}
-        ${l.id === current ? `<img class="you" src="${poseUrl(l.friends[0] ?? MASCOT, 'idle')}" alt="">` : ''}
+        ${l.id === current ? `<img class="you" src="${headUrl(l.friends[0] ?? MASCOT)}" alt="">` : ''}
       </button>`;
     })
     .join('');

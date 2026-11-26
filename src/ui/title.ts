@@ -1,12 +1,12 @@
 /* Écran titre. */
-import { poseUrl } from '../assets';
+import { headUrl } from '../assets';
 import { cannonImage } from '../render/cannon-art';
 import { FRIENDS } from '../sim/defs';
 import { show, muteLabel, bindMute, appButtons, bindAppButtons } from './common';
 
 export function titleScreen(onPlay: () => void) {
   const band = FRIENDS.slice(0, 7)
-    .map((f, i) => `<img class="t-friend" style="--i:${i}" src="${poseUrl(f.id, 'jump')}" alt="">`)
+    .map((f, i) => `<img class="t-friend" style="--i:${i}" src="${headUrl(f.id, 'fly')}" alt="">`)
     .join('');
   const el = show(
     `<div class="title">

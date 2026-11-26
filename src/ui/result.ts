@@ -1,5 +1,5 @@
 /* Résultats d'un niveau : étoiles, score, record, tonneau d'or, ami libéré. */
-import { enemyStillUrl, poseUrl, propUrl } from '../assets';
+import { enemyStillUrl, headUrl, propUrl } from '../assets';
 import { sfx } from '../audio';
 import type { Result } from '../game/game';
 import { type EnemyKind, FRIEND_BY_ID } from '../sim/defs';
@@ -37,7 +37,7 @@ export function resultScreen(
       </div>
       ${
         f
-          ? `<div class="col unlock"><img src="${poseUrl(f.id, 'win')}" alt=""><div><small>REJOINT LA BANDE</small><b>${f.name}</b><span>Pouvoir : ${f.powerName}</span><p>${f.desc}</p></div></div>`
+          ? `<div class="col unlock"><img src="${headUrl(f.id, 'win')}" alt=""><div><small>REJOINT LA BANDE</small><b>${f.name}</b><span>Pouvoir : ${f.powerName}</span><p>${f.desc}</p></div></div>`
           : ''
       }
     </div>`,
