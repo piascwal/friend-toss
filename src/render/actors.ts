@@ -106,7 +106,7 @@ function lifeBar(v: View, x: number, y: number, w: number, r: number) {
 /* ------------------------------------------------------------ amis et projectiles */
 
 /** Diamètre de la tête d'un ami en vol (m) : bien plus gros que son corps physique, pour le reconnaître. */
-export const HEAD = 1.25;
+export const HEAD = 1.4;
 
 /** Expressions de la grosse tête (poses `head_…` de la banque). */
 export type Mood = 'ready' | 'fly' | 'power' | 'hit' | 'win' | 'sad';
@@ -126,7 +126,7 @@ export function drawHead(
   mood: Mood = 'ready',
 ) {
   const head = exactPose(id, `head_${mood}`) ?? exactPose(id, 'head_ready');
-  if (head) return v.pic(head, x, y, (d * 1.15 * head.width) / head.height, d * 1.15, angle);
+  if (head) return v.pic(head, x, y, (d * 1.25 * head.width) / head.height, d * 1.25, angle);
   const ctx = v.ctx;
   const X = v.sx(x);
   const Y = v.sy(y);

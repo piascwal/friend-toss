@@ -38,7 +38,7 @@ export function drawCannon(v: View, scene: CannonScene, time: number) {
   // la grosse tête de l'ami dépasse de la bouche du canon
   if (L && L.hop >= 1) {
     const f = FRIEND_BY_ID[L.id];
-    drawHead(v, L.id, f?.color ?? '#fff', mouth.x + dir.x * 0.15, mouth.y + dir.y * 0.15 + 0.15, 1.05);
+    drawHead(v, L.id, f?.color ?? '#fff', mouth.x + dir.x * 0.15, mouth.y + dir.y * 0.15 + 0.15, 1.2);
   }
   const axis = 0.7 - back;
   v.pixel(art.barrel, CANNON.x + dir.x * axis, CANNON.y + dir.y * axis, 2.3, 0.8, a);
