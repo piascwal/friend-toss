@@ -111,7 +111,7 @@ export function posePath(id: string, pose: string): string | null {
   return null;
 }
 
-/** Image d'une pose seulement si le personnage l'a (sans repli) : pour les looks optionnels (chibi). */
+/** Image d'une pose seulement si le personnage l'a (sans repli) : pour les looks optionnels (grosses têtes). */
 export function exactPose(id: string, name: string): Pic | null {
   const file = characters.get(id)?.files[name];
   return file ? pic(`characters/${id}/${file}`) : null;

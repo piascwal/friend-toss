@@ -17,8 +17,9 @@ export interface CannonScene {
   aim?: { vx: number; vy: number; power: number };
   /** Amis qui attendent leur tour, en file derrière le canon. */
   waiting: string[];
-  /** Victoire : la bande fait la fête. */
+  /** Fin du niveau : la bande fait la fête, ou boude. */
   celebrate?: boolean;
+  sad?: boolean;
 }
 
 /** Position du premier ami de la file. */
@@ -48,12 +49,25 @@ export function drawCannon(v: View, scene: CannonScene, time: number) {
 
 function drawQueue(v: View, scene: CannonScene, time: number) {
   scene.waiting.forEach((id, i) => {
-    // look chibi s'il existe (plus petit, il tient dans la même place), sinon le sprite en pied
-    const chibi = exactPose(id, scene.celebrate ? 'chibi_win' : 'chibi_idle');
-    const img = chibi ?? pose(id, scene.celebrate ? 'win' : 'idle');
-    if (!img) return;
-    const h = chibi ? 1.3 : 1.5;
     const hop = scene.celebrate ? Math.abs(Math.sin(time * 6 + i)) * 0.4 : 0;
+    // grosses têtes posées au sol si la banque les a, sinon le sprite en pied
+    if (exactPose(id, 'head_ready')) {
+      const mood = scene.celebrate ? 'win' : scene.sad ? 'sad' : 'ready';
+      const bob = Math.abs(Math.sin(time * 2.5 + i)) * 0.08;
+      return drawHead(
+        v,
+        id,
+        FRIEND_BY_ID[id]?.color ?? '#fff',
+        QUEUE_X - i * 1.1,
+        0.55 + hop + bob,
+        1.1,
+        0,
+        mood,
+      );
+    }
+    const img = pose(id, scene.celebrate ? 'win' : 'idle');
+    if (!img) return;
+    const h = 1.5;
     v.pic(img, QUEUE_X - i * 1.1, h / 2 + hop, (h * img.width) / img.height, h);
   });
 }

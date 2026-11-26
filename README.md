@@ -56,9 +56,11 @@ s'écrasent et tremblent.
 
 ## Le look « grosse tête »
 
-En vol, un ami doit se reconnaître d'un coup d'œil. Le jeu demande à la banque le look **grosse tête**
-(chibi) de chaque ami : `chibi_head`, `chibi_idle`, `chibi_fly`, `chibi_power`, `chibi_hit`, `chibi_win`.
-Tant qu'une image manque, il affiche à la place le portrait de l'ami dans un rond à sa couleur.
+En vol, un ami doit se reconnaître d'un coup d'œil : le jeu le dessine en **grosse tête**, sans corps,
+avec l'expression du moment. Il demande à la banque une tête par expression : `head_ready` (dans le
+canon et dans la file), `head_fly` (en vol), `head_power` (pouvoir), `head_hit` (sonnée à l'impact),
+`head_win` (victoire), `head_sad` (défaite). Tant qu'une image manque, il affiche le portrait de l'ami
+dans un rond à sa couleur.
 
 Pour fournir ces images : ouvrir l'atelier de la banque (https://piascwal.github.io/sprite-bank/),
 choisir un ami, générer chaque pose « Grosse tête » avec son prompt, l'importer, puis **Exporter les

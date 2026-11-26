@@ -152,6 +152,7 @@ export class Game {
     const s = this.scene;
     s.cannon = { angle: this.angle, recoil: this.recoil };
     s.celebrate = sim.phase === 'won';
+    s.sad = sim.phase === 'lost';
     s.aim = aim ?? undefined;
     s.waiting = sim.phase === 'aim' ? sim.queue.slice(1) : sim.queue.slice(sim.phase === 'flying' ? 0 : 1);
     s.loaded = sim.phase === 'aim' && this.loadedId ? { id: this.loadedId, hop: this.hop } : undefined;

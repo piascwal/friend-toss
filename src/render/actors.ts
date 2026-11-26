@@ -1,5 +1,5 @@
-/* Les acteurs : modules et objets des structures, relous, amis en vol (look « grosse tête » de la banque
-   s'il existe, sinon leur portrait dans un rond à leur couleur) et projectiles de pouvoir. */
+/* Les acteurs : modules et objets des structures, relous, amis en vol (grosse tête de la banque avec
+   l'expression du moment, sinon leur portrait dans un rond à leur couleur) et projectiles de pouvoir. */
 import { enemyFrame, exactPose, pic, pose, spritePath } from '../assets';
 import type { Ent } from '../sim/entity';
 import type { Effects } from './effects';
@@ -108,13 +108,25 @@ function lifeBar(v: View, x: number, y: number, w: number, r: number) {
 /** Diamètre de la tête d'un ami en vol (m) : bien plus gros que son corps physique, pour le reconnaître. */
 export const HEAD = 1.25;
 
+/** Expressions de la grosse tête (poses `head_…` de la banque). */
+export type Mood = 'ready' | 'fly' | 'power' | 'hit' | 'win' | 'sad';
+
 /**
- * Grosse tête : l'image « tête seule » du look chibi si la banque l'a, sinon le portrait de l'ami dans
+ * Grosse tête : la tête de l'ami avec l'expression du moment si la banque l'a, sinon son portrait dans
  * un rond épais à sa couleur.
  */
-export function drawHead(v: View, id: string, color: string, x: number, y: number, d: number, angle = 0) {
-  const chibi = exactPose(id, 'chibi_head');
-  if (chibi) return v.pic(chibi, x, y, (d * 1.15 * chibi.width) / chibi.height, d * 1.15, angle);
+export function drawHead(
+  v: View,
+  id: string,
+  color: string,
+  x: number,
+  y: number,
+  d: number,
+  angle = 0,
+  mood: Mood = 'ready',
+) {
+  const head = exactPose(id, `head_${mood}`) ?? exactPose(id, 'head_ready');
+  if (head) return v.pic(head, x, y, (d * 1.15 * head.width) / head.height, d * 1.15, angle);
   const ctx = v.ctx;
   const X = v.sx(x);
   const Y = v.sy(y);
@@ -161,21 +173,14 @@ export function drawProjectile(v: View, e: Ent, time: number) {
   // la tête roule après l'impact, tourbillonne pendant la pirouette
   const angle = e.mode === 'spin' ? time * 14 : e.impactAt !== undefined ? e.body.getAngle() : 0;
   const size = e.kind === 'clone' ? HEAD * 0.85 : HEAD;
-  const body = chibiInFlight(e);
-  if (body) v.pic(body, p.x, p.y + size * 0.15, (size * 1.4 * body.width) / body.height, size * 1.4, angle);
-  else drawHead(v, f.id, f.color, p.x, p.y, size, angle);
+  drawHead(v, f.id, f.color, p.x, p.y, size, angle, flightMood(e));
 }
 
-/** Image du look chibi pour un ami en vol (sonné après l'impact, pouvoir déclenché, ou en vol). */
-function chibiInFlight(e: Ent) {
-  const id = e.friend!.id;
-  const name =
-    e.impactAt !== undefined
-      ? 'chibi_hit'
-      : e.powerUsed && e.friend!.power !== 'none'
-        ? 'chibi_power'
-        : 'chibi_fly';
-  return exactPose(id, name) ?? exactPose(id, 'chibi_fly');
+/** Expression d'un ami en vol : sonné après l'impact, défi au pouvoir, il crie sinon. */
+function flightMood(e: Ent): Mood {
+  if (e.impactAt !== undefined) return 'hit';
+  if (e.powerUsed && e.friend!.power !== 'none') return 'power';
+  return 'fly';
 }
 
 function speedLines(v: View, x: number, y: number, dx: number, dy: number, color: string) {
