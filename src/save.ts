@@ -1,5 +1,5 @@
 /* Progression du joueur, gardée dans le navigateur. */
-import { ALL_LEVELS, STARTERS, UNLOCKS } from './data/levels';
+import { ALL_LEVELS, STARTERS, UNLOCKS } from './levels';
 
 export interface Progress {
   /** Étoiles par niveau (meilleur résultat). */

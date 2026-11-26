@@ -1,5 +1,5 @@
 /* Difficulté : part des premiers tirs (angle × puissance, pouvoir à mi-vol) qui gagnent, et relous tués en moyenne. */
-import { ALL_LEVELS } from '../src/data/levels';
+import { ALL_LEVELS } from '../src/levels';
 import { play } from './solver';
 import { FRIEND_BY_ID } from '../src/sim/defs';
 

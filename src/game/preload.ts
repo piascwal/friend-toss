@@ -1,0 +1,32 @@
+/* Préchargement des images d'un niveau (amis, objets, relous, décor du monde). */
+import { load, posePath, preloadEnemy, spritePath } from '../assets';
+import type { WorldDef } from '../levels';
+import { ENEMIES, FRIEND_BY_ID, OBJECTS, type ObjDef } from '../sim/defs';
+import type { LevelDef } from '../sim/level';
+
+const POSES = ['idle', 'portrait', 'jump', 'win'];
+
+export async function preloadLevel(level: LevelDef, world: WorldDef) {
+  const jobs: Promise<unknown>[] = [];
+  const friends = new Set([...level.friends, ...level.items.filter((i) => i.friend).map((i) => i.friend!)]);
+  for (const id of friends) {
+    const f = FRIEND_BY_ID[id];
+    const extra = [
+      f?.castPose,
+      f?.fxPose,
+      f?.power === 'pet' ? 'pj_pet_run2' : undefined,
+      f?.power === 'levitate' ? 'pj_mandala' : undefined,
+    ];
+    for (const p of [...POSES, ...extra]) {
+      const path = p && posePath(id, p);
+      if (path) jobs.push(load(path));
+    }
+  }
+  for (const it of level.items) {
+    const def = OBJECTS[it.k] as ObjDef;
+    if (def.sprite) jobs.push(load(spritePath(def.sprite)));
+  }
+  level.enemies.forEach((e, i) => jobs.push(preloadEnemy(e.k, e.v ?? (i % ENEMIES[e.k].variants) + 1)));
+  void world;
+  await Promise.all(jobs);
+}

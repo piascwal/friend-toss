@@ -2,8 +2,9 @@
 import '@fontsource/press-start-2p';
 import './style.css';
 import { loadCharacters, loadNpcs } from './assets';
-import { ALL_LEVELS, LEVEL_BY_ID, UNLOCKS } from './data/levels';
-import { Game, preloadLevel, type Result } from './game';
+import { ALL_LEVELS, LEVEL_BY_ID, UNLOCKS } from './levels';
+import { Game, type Result } from './game/game';
+import { preloadLevel } from './game/preload';
 import { FRIENDS } from './sim/defs';
 import { autoFullscreen, isPortrait, setupPwa } from './pwa';
 import { loadProgress, saveProgress, type Progress } from './save';

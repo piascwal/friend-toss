@@ -1,103 +1,25 @@
 /* Simulation d'un niveau : physique (planck), dégâts, explosions, pouvoirs des amis, score, victoire.
    Aucune dépendance au navigateur : l'affichage lit `ents` et vide `events` à chaque image. */
-import { Box, Circle, Polygon, Vec2, World, type Body, type Contact, type Fixture } from 'planck';
+import { Vec2, World, type Body, type Contact, type Fixture } from 'planck';
+import { chamfered } from './shapes';
 import {
-  ENEMIES,
-  FRIEND_BY_ID,
-  MATS,
-  OBJECTS,
-  type EnemyDef,
-  type EnemyKind,
-  type FriendDef,
-  type Mat,
-  type ObjDef,
-  type ObjKind,
-} from './defs';
+  CANNON,
+  DMG_K,
+  DT,
+  ENEMY_MUL,
+  FRIEND_BONUS,
+  FRIEND_DMG,
+  GRAVITY,
+  IMP_MIN,
+  IMP_MIN_ENEMY,
+  KILL_SCORE,
+  muzzle,
+} from './constants';
+import { isProjectile, type Ent, type EntKind, type Phase, type SimEvent } from './entity';
+import { usePower } from './powers';
+import { ENEMIES, FRIEND_BY_ID, MATS, type EnemyDef, type Mat } from './defs';
 import type { LevelDef } from './level';
-
-export const GRAVITY = -11;
-export const MAX_SPEED = 23;
-/** Pivot du canon (m) et longueur du fût : l'ami sort par la bouche du canon. */
-export const CANNON = { x: 0, y: 1.15 };
-export const BARREL = 1.75;
-
-/** Bouche du canon pour un tir dans la direction (vx, vy). */
-export function muzzle(vx: number, vy: number) {
-  const d = Math.hypot(vx, vy) || 1;
-  return { x: CANNON.x + (vx / d) * BARREL, y: CANNON.y + (vy / d) * BARREL };
-}
-export const DT = 1 / 60;
-
-const IMP_MIN = 2.2;
-const IMP_MIN_ENEMY = 0.8;
-const DMG_K = 1.8;
-const FRIEND_DMG = 1.5;
-const ENEMY_MUL = 2.4;
-const KILL_SCORE = 5000;
-const FRIEND_BONUS = 10000;
-
-export type EntKind = 'block' | 'enemy' | 'friend' | 'clone' | 'ball' | 'puck' | 'pet';
-
-export interface Ent {
-  id: number;
-  kind: EntKind;
-  body: Body;
-  w: number;
-  h: number;
-  shape: 'box' | 'circle' | 'triangle';
-  mat: Mat | 'enemy' | 'friend';
-  hp: number;
-  maxHp: number;
-  dead: boolean;
-  obj?: ObjKind;
-  objDef?: ObjDef;
-  enemy?: EnemyKind;
-  enemyDef?: EnemyDef;
-  variant: number;
-  friend?: FriendDef;
-  /** Cage : ami enfermé. */
-  caged?: string;
-  frozen?: boolean;
-  /** Temps restant de l'animation « touché ». */
-  hurt: number;
-  /** Tonneau-fusée allumé : temps avant explosion. */
-  fuse?: number;
-  // projectiles
-  launchedAt?: number;
-  impactAt?: number;
-  slowFor?: number;
-  powerUsed?: boolean;
-  powerAt?: number;
-  /** Dégâts par matériau (amis et projectiles de pouvoir). */
-  dmg?: Partial<Record<Mat | 'enemy', number>>;
-  /** Pouvoir à effet différé (séisme à l'impact, lévitation, course du chien). */
-  mode?: 'slam' | 'levitate' | 'spin' | 'run';
-  modeUntil?: number;
-  portalCooldown?: number;
-  /** Portail : index de son partenaire. */
-  portalPair?: Ent;
-}
-
-export type SimEvent =
-  | { t: 'break'; x: number; y: number; w: number; h: number; mat: Mat; angle: number }
-  | { t: 'kill'; x: number; y: number; ent: Ent }
-  | { t: 'score'; x: number; y: number; pts: number; color?: string }
-  | { t: 'explode'; x: number; y: number; r: number; confetti?: boolean }
-  | { t: 'impact'; x: number; y: number; force: number; mat: Mat | 'enemy' | 'friend' }
-  | { t: 'power'; ent: Ent; x: number; y: number; target?: { x: number; y: number } }
-  | { t: 'beam'; x0: number; y0: number; x1: number; y1: number }
-  | { t: 'freeze'; x: number; y: number; dir: number }
-  | { t: 'free'; friend: string; x: number; y: number }
-  | { t: 'gold'; x: number; y: number }
-  | { t: 'poof'; x: number; y: number; ent: Ent }
-  | { t: 'launch'; ent: Ent }
-  | { t: 'teleport'; x: number; y: number; x2: number; y2: number }
-  | { t: 'rocket'; x: number; y: number }
-  | { t: 'bounce'; x: number; y: number }
-  | { t: 'shockwave'; x: number; y: number }
-  | { t: 'end'; won: boolean };
-
-export type Phase = 'aim' | 'flying' | 'settling' | 'won' | 'lost';
+import { buildLevel } from './setup';
 
 interface Hit {
   a: Ent;
@@ -138,102 +60,14 @@ export class Sim {
     this.queue = [...level.friends];
     this.world = new World({ gravity: new Vec2(0, GRAVITY) });
     this.width = Math.max(30, ...level.items.map((i) => i.x + 4), ...level.enemies.map((e) => e.x + 4));
-    this.buildGround();
-    for (const item of level.items) this.addItem(item);
-    for (const [i, e] of level.enemies.entries())
-      this.addEnemy(e.k, e.x, e.y, e.v ?? (i % ENEMIES[e.k].variants) + 1);
-    this.linkPortals();
+    buildLevel(this);
     this.world.on('post-solve', (c, imp) => this.onPostSolve(c, imp.normalImpulses));
     this.world.on('begin-contact', (c) => this.onBegin(c));
     this.settle();
   }
 
-  /* ------------------------------------------------------------ construction */
-
-  private buildGround() {
-    const ground = this.world.createBody({ type: 'static' });
-    ground.createFixture({ shape: new Box(200, 5, new Vec2(this.width / 2, -5), 0), friction: 0.9 });
-    for (const g of this.level.ground ?? []) {
-      const bottom = g.bottom ?? -1;
-      const hw = (g.x1 - g.x0) / 2;
-      const hh = (g.top - bottom) / 2;
-      ground.createFixture({ shape: new Box(hw, hh, new Vec2(g.x0 + hw, bottom + hh), 0), friction: 0.9 });
-    }
-    ground.setUserData(null);
-  }
-
-  private addItem(item: LevelDef['items'][number]) {
-    const def = OBJECTS[item.k] as ObjDef;
-    const w = item.w ?? def.w;
-    const h = item.h ?? def.h;
-    const mat = MATS[def.mat];
-    const a = ((item.a ?? 0) * Math.PI) / 180;
-    // le y donné est le bas de l'objet avant rotation : on place le centre
-    const cx = item.x - Math.sin(a) * (h / 2);
-    const cy = item.y + Math.cos(a) * (h / 2);
-    const special0 = def.special;
-    const body = this.world.createBody({
-      // le tonneau-fusée reste sur son pas de tir jusqu'à l'allumage
-      type: def.fixed || special0?.type === 'rocket' ? 'static' : 'dynamic',
-      position: new Vec2(cx, cy),
-      angle: a,
-    });
-    const special = def.special;
-    const restitution = special?.type === 'bounce' ? special.restitution : mat.restitution;
-    const fixture = {
-      density: def.density ?? mat.density,
-      friction: mat.friction,
-      restitution,
-      isSensor: special?.type === 'portal',
-    };
-    if (def.shape === 'circle') body.createFixture({ shape: new Circle(Math.min(w, h) / 2), ...fixture });
-    else if (def.shape === 'triangle')
-      body.createFixture({
-        shape: new Polygon([new Vec2(-w / 2, -h / 2), new Vec2(w / 2, -h / 2), new Vec2(0, h / 2)]),
-        ...fixture,
-      });
-    else if (special?.type === 'bounce') {
-      // trampoline : toile en haut, pieds en dessous
-      body.createFixture({ shape: new Box(w / 2, h * 0.12, new Vec2(0, h * 0.32), 0), ...fixture });
-      body.createFixture({
-        shape: new Box(w * 0.42, h * 0.3, new Vec2(0, -h * 0.15), 0),
-        ...fixture,
-        restitution: 0.1,
-      });
-    } else if (special?.type === 'portal') {
-      body.createFixture({ shape: new Box(w * 0.32, h * 0.38, new Vec2(0, 0), 0), ...fixture });
-    } else body.createFixture({ shape: chamfered(w, h, Math.min(w, h) * 0.16), ...fixture });
-    const hp = def.hp ?? mat.hp;
-    const ent = this.makeEnt('block', body, w, h, def.shape, def.mat, hp);
-    ent.obj = item.k;
-    ent.objDef = def;
-    ent.caged = item.friend;
-  }
-
-  private addEnemy(k: EnemyKind, x: number, y: number, variant: number) {
-    const def = ENEMIES[k] as EnemyDef;
-    const body = this.world.createBody({ type: 'dynamic', position: new Vec2(x, y + def.h / 2) });
-    body.createFixture({
-      shape: chamfered(def.w, def.h, 0.12),
-      density: def.density ?? 1,
-      friction: 0.8,
-      restitution: 0.1,
-    });
-    const ent = this.makeEnt('enemy', body, def.w, def.h, 'box', 'enemy', def.hp);
-    ent.enemy = k;
-    ent.enemyDef = def;
-    ent.variant = variant;
-  }
-
-  private linkPortals() {
-    const portals = this.ents.filter((e) => e.objDef?.special?.type === 'portal');
-    for (let i = 0; i + 1 < portals.length; i += 2) {
-      portals[i]!.portalPair = portals[i + 1];
-      portals[i + 1]!.portalPair = portals[i];
-    }
-  }
-
-  private makeEnt(
+  /** Ajoute une entité (le corps physique est déjà créé). */
+  addEnt(
     kind: EntKind,
     body: Body,
     w: number,
@@ -326,7 +160,7 @@ export class Sim {
     });
     body.setLinearVelocity(new Vec2(vx, vy));
     body.setAngularVelocity(-2);
-    const ent = this.makeEnt('friend', body, def.radius * 2, def.radius * 2, 'circle', 'friend', 1e9);
+    const ent = this.addEnt('friend', body, def.radius * 2, def.radius * 2, 'circle', 'friend', 1e9);
     ent.friend = def;
     ent.launchedAt = this.time;
     ent.dmg = { ...def.dmg };
@@ -346,130 +180,8 @@ export class Sim {
     e.powerUsed = true;
     e.powerAt = this.time;
     const p = e.body.getPosition();
-    const v = e.body.getLinearVelocity();
-    const speed = Math.hypot(v.x, v.y);
-    const dir = speed > 0.1 ? { x: v.x / speed, y: v.y / speed } : { x: 1, y: 0 };
     this.events.push({ t: 'power', ent: e, x: p.x, y: p.y, target });
-    switch (e.friend.power) {
-      case 'none':
-        e.powerUsed = true;
-        break;
-      case 'dash': {
-        const s = Math.max(speed * 1.9, 26);
-        e.body.setLinearVelocity(new Vec2(dir.x * s, dir.y * s));
-        e.body.setGravityScale(0.35);
-        break;
-      }
-      case 'triple': {
-        for (const deg of [-9, 9]) {
-          const r = (deg * Math.PI) / 180;
-          const nv = new Vec2(v.x * Math.cos(r) - v.y * Math.sin(r), v.x * Math.sin(r) + v.y * Math.cos(r));
-          const body = this.world.createBody({
-            type: 'dynamic',
-            position: new Vec2(p.x, p.y + (deg > 0 ? 0.6 : -0.6)),
-            bullet: true,
-          });
-          body.createFixture({
-            shape: new Circle(e.friend.radius * 0.9),
-            density: e.friend.density,
-            friction: 0.6,
-            restitution: 0.3,
-          });
-          body.setLinearVelocity(nv);
-          const c = this.makeEnt('clone', body, e.w, e.h, 'circle', 'friend', 1e9);
-          c.friend = e.friend;
-          c.launchedAt = this.time;
-          c.dmg = e.dmg;
-          c.powerUsed = true;
-        }
-        break;
-      }
-      case 'blast':
-        this.explode(p.x, p.y, 3.8, 75, 45, e);
-        e.body.setLinearVelocity(new Vec2(v.x * 0.3, v.y * 0.3));
-        break;
-      case 'slam':
-        e.mode = 'slam';
-        e.body.setLinearVelocity(new Vec2(v.x * 0.15, -30));
-        e.body.setGravityScale(1.5);
-        e.dmg = { ...e.dmg, wood: 2, ice: 2, enemy: 1.5 };
-        break;
-      case 'freeze':
-        this.freezeCone(p.x, p.y, dir.x >= 0 ? 1 : -1);
-        break;
-      case 'jump':
-        e.body.setLinearVelocity(new Vec2(Math.max(Math.abs(v.x), 7) * Math.sign(v.x || 1), 13));
-        break;
-      case 'spin':
-        e.mode = 'spin';
-        e.modeUntil = this.time + 5;
-        e.body.getFixtureList()!.setRestitution(0.92);
-        e.body.getFixtureList()!.setFriction(0.05);
-        e.body.setAngularVelocity(-25);
-        break;
-      case 'smash': {
-        const t = target ?? { x: p.x + dir.x * 10, y: p.y + dir.y * 10 };
-        const dx = t.x - p.x;
-        const dy = t.y - p.y;
-        const d = Math.hypot(dx, dy) || 1;
-        const body = this.world.createBody({
-          type: 'dynamic',
-          position: new Vec2(p.x + (dx / d) * 0.6, p.y + (dy / d) * 0.6),
-          bullet: true,
-        });
-        body.createFixture({ shape: new Circle(0.2), density: 30, friction: 0.3, restitution: 0.5 });
-        body.setLinearVelocity(new Vec2((dx / d) * 42, (dy / d) * 42));
-        body.setGravityScale(0.15);
-        const ball = this.makeEnt('ball', body, 0.4, 0.4, 'circle', 'friend', 1e9);
-        ball.friend = e.friend;
-        ball.launchedAt = this.time;
-        ball.dmg = { enemy: 2.5, wood: 1.6, explosive: 3 };
-        ball.powerUsed = true;
-        e.body.setLinearVelocity(new Vec2((-dx / d) * 4, 4));
-        break;
-      }
-      case 'levitate':
-        e.mode = 'levitate';
-        e.modeUntil = this.time + 2;
-        e.body.setGravityScale(0);
-        e.body.setLinearVelocity(new Vec2(Math.max(speed, 12) * Math.sign(v.x || 1), 0));
-        break;
-      case 'pet': {
-        const body = this.world.createBody({
-          type: 'dynamic',
-          position: new Vec2(p.x + 0.5, p.y - 0.6),
-          fixedRotation: true,
-        });
-        body.createFixture({ shape: chamfered(0.95, 0.6, 0.15), density: 4, friction: 0, restitution: 0.1 });
-        body.setLinearVelocity(new Vec2(Math.max(v.x, 8), Math.min(v.y, -4)));
-        const pet = this.makeEnt('pet', body, 0.95, 0.6, 'box', 'friend', 1e9);
-        pet.friend = e.friend;
-        pet.launchedAt = this.time;
-        pet.dmg = { wood: 1.8, enemy: 1.6, ice: 2 };
-        pet.powerUsed = true;
-        pet.mode = 'run';
-        break;
-      }
-      case 'beam':
-        this.fireBeam(p.x, p.y, dir.x, dir.y, e);
-        break;
-      case 'puck': {
-        const body = this.world.createBody({
-          type: 'dynamic',
-          position: new Vec2(p.x + 0.3, p.y - 0.5),
-          bullet: true,
-        });
-        body.createFixture({ shape: new Circle(0.22), density: 40, friction: 0.2, restitution: 0.3 });
-        body.setLinearVelocity(new Vec2(Math.sign(v.x || 1) * 16, -32));
-        const puck = this.makeEnt('puck', body, 0.44, 0.44, 'circle', 'friend', 1e9);
-        puck.friend = e.friend;
-        puck.launchedAt = this.time;
-        puck.dmg = { wood: 2, ice: 2, stone: 1.6, enemy: 2 };
-        puck.powerUsed = true;
-        e.body.setLinearVelocity(new Vec2(v.x * 0.6, 11));
-        break;
-      }
-    }
+    usePower(this, e, target);
     return true;
   }
 
@@ -510,10 +222,6 @@ export class Sim {
     ] as const) {
       if (x?.objDef?.special?.type === 'gold' && y && isProjectile(y))
         this.pending.push(() => this.destroy(x, true));
-      if (x?.objDef?.special?.type === 'bounce' && y && !y.dead) {
-        const p = x.body.getPosition();
-        this.events.push({ t: 'bounce', x: p.x, y: p.y + x.h / 2 });
-      }
     }
   }
 
@@ -561,6 +269,16 @@ export class Sim {
         e.body.setAngularDamping(3);
         e.body.setLinearDamping(0.6);
       }
+      if (e.mode === 'fire' && !e.dead) {
+        // la boule de feu explose au premier contact
+        e.mode = undefined;
+        const p = e.body.getPosition();
+        this.pending.push(() => {
+          this.explode(p.x, p.y, 2.8, 60, 95, e);
+          this.destroy(e, false);
+        });
+        continue;
+      }
       if (e.mode === 'slam' && h.imp > 2) {
         e.mode = undefined;
         const p = e.body.getPosition();
@@ -578,7 +296,8 @@ export class Sim {
     }
   }
 
-  private hurt(e: Ent, dmg: number) {
+  /** Inflige des dégâts ; à 0, l'entité casse (ou le relou tombe). */
+  hurt(e: Ent, dmg: number) {
     if (e.dead || e.maxHp >= 1e8) return;
     e.hp -= dmg;
     if (e.kind === 'enemy') e.hurt = 0.45;
@@ -669,58 +388,13 @@ export class Sim {
     }
   }
 
-  /** Givre : gèle les objets et relous dans un cône devant ROULIE. */
-  private freezeCone(x: number, y: number, dir: number) {
-    this.events.push({ t: 'freeze', x, y, dir });
-    for (const e of this.ents) {
-      if (e.dead || (e.kind !== 'block' && e.kind !== 'enemy') || e.objDef?.fixed) continue;
-      const p = e.body.getPosition();
-      const dx = (p.x - x) * dir;
-      const dy = p.y - y;
-      if (dx < -0.5 || dx > 9) continue;
-      if (Math.abs(dy) > 2 + dx * 0.75) continue;
-      if (e.maxHp >= 1e8) continue;
-      e.frozen = true;
-      e.hp = Math.min(e.hp, e.kind === 'enemy' ? e.hp * 0.5 : MATS.ice.hp);
-    }
-  }
-
-  /** Rayon : transperce bois, glace, relous ; arrêté par la pierre et le métal. */
-  private fireBeam(x: number, y: number, dx: number, dy: number, src: Ent) {
-    const len = 22;
-    const end = { x: x + dx * len, y: y + dy * len };
-    const found: { e: Ent | null; f: number }[] = [];
-    this.world.rayCast(new Vec2(x, y), new Vec2(end.x, end.y), (fixture, _p, _n, fraction) => {
-      const e = fixture.getBody().getUserData() as Ent | null;
-      if (e === src || fixture.isSensor() || (e && isProjectile(e))) return -1;
-      found.push({ e, f: fraction });
-      return 1;
-    });
-    found.sort((a, b) => a.f - b.f);
-    let stop = 1;
-    for (const { e, f } of found) {
-      if (!e) {
-        stop = f;
-        break;
-      }
-      if (e.kind === 'enemy') this.hurt(e, 120);
-      else if (e.mat === 'stone' || e.mat === 'metal' || e.mat === 'rubber') {
-        this.hurt(e, 60 * (e.frozen ? 3 : 1));
-        stop = f;
-        break;
-      } else this.hurt(e, 90);
-      if (e.body.isDynamic()) e.body.applyLinearImpulse(new Vec2(dx * 3, dy * 3), e.body.getPosition(), true);
-    }
-    this.events.push({ t: 'beam', x0: x, y0: y, x1: x + dx * len * stop, y1: y + dy * len * stop });
-  }
-
   private updateEnts() {
     for (const e of this.ents) {
       if (e.dead) continue;
       if (e.hurt > 0) e.hurt -= DT;
       const p = e.body.getPosition();
       // sorti du niveau
-      if (p.y < -12 || p.x < -30 || p.x > this.width + 40) {
+      if (p.y < -15 || p.x < -30 || p.x > this.width + 40) {
         this.destroy(e, e.kind === 'enemy');
         continue;
       }
@@ -830,26 +504,6 @@ export function autoThresholds(level: LevelDef, maxScore: number): [number, numb
     r(enemyScore + blocks * 0.3 + FRIEND_BONUS * Math.max(0, spare - 1) * 0.5),
     r(enemyScore + blocks * 0.5 + FRIEND_BONUS * Math.max(0, spare - 1)),
   ];
-}
-
-export const isProjectile = (e: Ent) =>
-  e.kind === 'friend' || e.kind === 'clone' || e.kind === 'ball' || e.kind === 'puck' || e.kind === 'pet';
-
-/** Boîte aux coins coupés (les piles tiennent mieux et roulent moins bizarrement). */
-function chamfered(w: number, h: number, c = 0.04) {
-  const hw = w / 2;
-  const hh = h / 2;
-  const k = Math.min(c, hw * 0.3, hh * 0.3);
-  return new Polygon([
-    new Vec2(-hw + k, -hh),
-    new Vec2(hw - k, -hh),
-    new Vec2(hw, -hh + k),
-    new Vec2(hw, hh - k),
-    new Vec2(hw - k, hh),
-    new Vec2(-hw + k, hh),
-    new Vec2(-hw, hh - k),
-    new Vec2(-hw, -hh + k),
-  ]);
 }
 
 /** Crée la simulation et mémorise le score maximal (pour les étoiles). */

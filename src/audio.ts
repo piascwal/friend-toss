@@ -106,7 +106,6 @@ export const sfx = {
   },
   kill: () => throttle('kill', 80) && (tone('square', 500, 120, 0.25, 0.2), noise(0.2, 0.3, 1200, 1)),
   score: () => throttle('score', 90) && tone('square', 1200, 1250, 0.05, 0.06),
-  bounce: () => throttle('bounce', 120) && tone('triangle', 200, 700, 0.25, 0.35),
   teleport: () => {
     tone('sine', 300, 1600, 0.3, 0.25);
     tone('sine', 1600, 300, 0.3, 0.2, 0.15);

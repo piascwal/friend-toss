@@ -28,31 +28,41 @@ d'accueil » ; sur iPhone : Partager → Sur l'écran d'accueil). Une fois insta
 
 ## La bande
 
-| Ami      | Pouvoir          | Ce qu'il fait                                                      | Libéré en |
-| -------- | ---------------- | ------------------------------------------------------------------ | --------- |
-| ROULIAN  | Poids mort       | Aucun pouvoir, mais lourd                                          | départ    |
-| MAT      | Ruée             | Fonce tout droit, transperce le bois                               | 1-2       |
-| TOM      | Vision triple    | Se divise en trois, idéal contre la glace                          | 1-5       |
-| JBM      | Paume de souffle | Onde de choc autour de lui                                         | 2-3       |
-| LOLO     | Séisme           | Pique vers le sol, broie la pierre, onde à l'impact                | 2-6       |
-| ROULIE   | Givre            | Gèle ce qui est devant elle : ce qui est gelé casse comme du verre | 3-3       |
-| SOSO     | Double saut      | Rebondit en l'air                                                  | 3-6       |
-| ELO      | Pirouette        | Ricoche partout                                                    | 4-2       |
-| RORO     | Smash            | Balle de padel vers le point touché                                | 4-4       |
-| INDIANNE | Lévitation       | Vole tout droit deux secondes                                      | 4-6       |
-| CLEM     | Va chercher !    | Son chien fonce au ras du sol                                      | 5-2       |
-| BUBU     | Rayon            | Transperce bois et glace en ligne droite                           | 5-3       |
-| MAR-1    | Lancer frappé    | Palet en piqué, elle rebondit vers le haut                         | 5-4       |
+En vol, chaque ami est une grosse tête ronde à sa couleur : on le reconnaît d'un coup d'œil.
+
+| Ami      | Pouvoir          | Ce qu'il fait                                         | Libéré en |
+| -------- | ---------------- | ----------------------------------------------------- | --------- |
+| ROULIAN  | Poids mort       | Aucun pouvoir, mais lourd                             | départ    |
+| MAT      | Ruée             | Fonce tout droit, transperce le bois                  | 1-3       |
+| TOM      | Vision triple    | Se divise en trois, idéal contre la glace             | 1-7       |
+| JBM      | Paume de souffle | Onde de choc autour de lui                            | 1-12      |
+| JBG      | Boule de feu     | Boule de feu tout droit, qui explose au contact       | 2-4       |
+| LOLO     | Séisme           | Pique vers le sol, broie la pierre                    | 2-12      |
+| ROULIE   | Givre            | Gèle ce qui est devant elle : ça casse comme du verre | 3-4       |
+| SOSO     | Double saut      | Rebondit en l’air                                     | 3-12      |
+| ELO      | Pirouette        | Ricoche partout                                       | 4-3       |
+| RORO     | Smash            | Balle de padel vers le point touché                   | 4-7       |
+| INDIANNE | Lévitation       | Vole tout droit deux secondes                         | 4-12      |
+| CLEM     | Va chercher !    | Son chien fonce au ras du sol                         | 5-3       |
+| BUBU     | Rayon            | Transperce bois et glace en ligne droite              | 5-6       |
+| MAR-1    | Lancer frappé    | Palet en piqué, elle rebondit vers le haut            | 5-9       |
+
+## Les relous
+
+Une liste courte, comme dans le genre : le **fêtard** (petit, fragile), le **videur** (costaud), le
+**pilier** (gros, il faut l'écraser ou le faire exploser), et un **boss** par monde. Ils sont cerclés de
+vert (le boss de rose) pour qu'on sache toujours quoi viser.
 
 ## Les mondes
 
-Chaque monde apprend une ou deux mécaniques, les combine, puis finit par un boss.
+5 mondes de 12 niveaux. Chaque monde apprend une ou deux mécaniques, les combine sur du relief
+(collines, falaises, gradins, îlots, grottes), puis finit par une grande forteresse ou un boss.
 
-1. **Le Camping** : bois, fêtards, pigeons perchés, cages.
-2. **Le Festival** : barils et caissons explosifs, enceintes en métal, glace, videurs ; boss **DJ Boucle**.
-3. **La Montagne** : pierre, rochers qui dévalent, givre ; boss **Yéti Alpha**.
-4. **La Plage** : trampolines, pneus, tonneaux-fusées ; boss **le Champion**.
-5. **La Ville** : tunnels, téléporteurs, voitures ; boss **le Méga-Robot**.
+1. **Le Camping** : bois, étages, roues, TNT, collines.
+2. **Le Festival** : barils et TNT, glace, enceintes en métal, gradins ; boss **DJ Boucle**.
+3. **La Montagne** : pierre, boulets, falaises, îlots, grotte, givre ; boss **Yéti Alpha**.
+4. **La Plage** : dunes, pneus, pilotis, tonneaux-fusées, phare ; boss **le Champion**.
+5. **La Ville** : métal, voitures, tunnels, téléporteurs, toits, métro ; boss **le Méga-Robot**.
 
 Un **tonneau d'or** est caché dans certains niveaux.
 
@@ -74,27 +84,42 @@ efface la progression.
 
 ### Organisation
 
+Le code est découpé en petits modules, chacun avec une responsabilité claire. La simulation ne
+dépend pas du navigateur : le solveur la fait tourner dans les tests.
+
 ```
-needs.json             besoins du jeu dans la banque (poses, objets, ennemis) : `npm run needs -- ../sprite-bank`
-sprites.json           version de la banque suivie (« v2 » = la plus récente des v2.x)
-scripts/sprites.mjs    télécharge la banque, copie les images demandées et fait les icônes (scripts/icons.mjs)
-public/manifest.webmanifest, public/sw.js   application installable et hors ligne
-src/pwa.ts             plein écran, paysage, installation
-src/sim/               simulation sans navigateur : physique (planck), dégâts, pouvoirs, score
-  defs.ts              matériaux, objets, relous, amis et pouvoirs
-  level.ts             format d'un niveau et outil de construction (empiler, poutres, cabanes, tours)
-  sim.ts               un niveau en cours
-src/data/levels.ts     les 5 mondes et leurs 30 niveaux
-src/render/            affichage canvas : caméra, ciel et sol pixel art, effets
-src/game.ts            une partie : visée, pouvoirs, effets, HUD
-src/ui.ts              écrans : titre, carte, présentation, pause, résultats, guide
-tests/                 niveaux bien construits ; solveur (tests/solve/)
+needs.json               besoins du jeu dans la banque : `npm run needs -- ../sprite-bank`
+sprites.json             version de la banque suivie (« v2 » = la plus récente des v2.x)
+scripts/                 récupération des images de la banque, icônes de l'application
+src/main.ts              enchaînement des écrans et progression
+src/sim/                 simulation (sans navigateur)
+  catalog/               catalogue : matériaux, objets, relous, amis (un fichier chacun)
+  constants.ts           gravité, canon, réglages des dégâts et des points
+  entity.ts              entités d'un niveau en cours et événements pour l'affichage
+  level.ts               format d'un niveau, surface du relief
+  setup.ts               construction d'un niveau dans le monde physique
+  sim.ts                 un niveau en cours : tir, dégâts, explosions, score, victoire
+  powers.ts              les pouvoirs des amis (une fonction par pouvoir)
+src/levels/              les niveaux : un fichier par monde, et l'outil de construction (build.ts)
+src/render/              affichage canvas
+  view.ts                coordonnées monde ↔ écran, dessin des images
+  camera.ts              mise en scène : ouverture, visée, suivi, zoom au doigt
+  scenery.ts, sky.ts     ciel, lointains, sol en relief, plateformes
+  actors.ts              objets, relous (contour), amis (grosse tête), projectiles
+  cannon.ts              canon, file des amis, trajectoire de visée
+  effects.ts             particules et textes flottants
+  textures.ts, …         pixel art dessiné par le jeu (modules, TNT, sol, canon)
+src/game/                une partie : orchestration (game.ts), gestes (input.ts), HUD (hud.ts),
+                         effets et sons de chaque événement (feedback.ts), préchargement
+src/ui/                  écrans HTML : un fichier par écran (titre, carte, intro, pause, résultats, guide)
+tests/                   niveaux bien construits ; solveur (tests/solve/)
 ```
 
 ### Ajouter un niveau
 
-Dans `src/data/levels.ts`, une fonction construit le niveau avec `Build`, module par module : blocs,
-poutres et poteaux épais, ronds, toits, pièces, tours, murs, pyramides, dominos (positions en mètres,
+Dans le fichier de son monde (`src/levels/<monde>.ts`), une fonction construit le niveau avec `Build`, module par module : blocs,
+poutres et poteaux épais, ronds, toits, pièces, forteresses (`fort`, avec des cases pour loger les
+relous), murs, pyramides, dominos, relief (`relief`) et plateformes (positions en mètres,
 `x = 0` à 2 m devant le canon, `y` = bas de la pièce), puis on l'ajoute à son monde. `npm test` vérifie que la
 structure tient debout, `npm run solve` qu'elle est gagnable.
 

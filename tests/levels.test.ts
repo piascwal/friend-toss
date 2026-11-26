@@ -1,7 +1,7 @@
 /* Les niveaux sont bien construits : chaque pièce reste où le niveau la pose, et rien ne tombe ni ne
    casse tant qu'on ne tire pas. (La faisabilité est vérifiée par le solveur : npm run solve.) */
 import { describe, expect, it } from 'vitest';
-import { ALL_LEVELS, UNLOCKS, STARTERS } from '../src/data/levels';
+import { ALL_LEVELS, UNLOCKS, STARTERS } from '../src/levels';
 import { FRIENDS, FRIEND_BY_ID } from '../src/sim/defs';
 import { createSim } from '../src/sim/sim';
 

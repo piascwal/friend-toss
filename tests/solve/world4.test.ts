@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WORLDS } from '../../src/data/levels';
+import { WORLDS } from '../../src/levels';
 import { solve } from '../solver';
 
 const world = WORLDS[3]!;

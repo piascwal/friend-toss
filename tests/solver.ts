@@ -1,7 +1,8 @@
 /* Solveur : cherche, tir par tir, le meilleur lancer (angle, puissance, moment du pouvoir).
    Il ne joue pas parfaitement, mais s'il gagne, le niveau est faisable. */
 import type { LevelDef } from '../src/sim/level';
-import { createSim, MAX_SPEED, type Sim } from '../src/sim/sim';
+import { MAX_SPEED } from '../src/sim/constants';
+import { createSim, type Sim } from '../src/sim/sim';
 import { FRIEND_BY_ID } from '../src/sim/defs';
 
 export interface Shot {
