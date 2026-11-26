@@ -32,7 +32,7 @@ export function playEvents(events: SimEvent[], t: FeedbackTarget) {
         fx.flash(m.x, m.y, 1.6, '#ffd27a');
         fx.smoke(m.x, m.y, 10, 0.55, 'rgba(235,235,235,0.9)');
         fx.addShake(0.3);
-        fx.text(CANNON.x + 1, CANNON.y + 2.8, f.shout, '#1a1020', 12, 1.3, true);
+        fx.text(CANNON.x + 1, CANNON.y + 3.2, f.shout, '#1a1020', 12, 1.3, true);
         sfx.launch();
         break;
       }

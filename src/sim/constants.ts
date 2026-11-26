@@ -3,8 +3,8 @@
 export const GRAVITY = -11;
 export const MAX_SPEED = 23;
 /** Pivot du canon (m) et longueur du fût : l'ami sort par la bouche du canon. */
-export const CANNON = { x: 0, y: 1.15 };
-export const BARREL = 1.75;
+export const CANNON = { x: 0, y: 2 };
+export const BARREL = 3;
 
 /** Bouche du canon pour un tir dans la direction (vx, vy). */
 export function muzzle(vx: number, vy: number) {

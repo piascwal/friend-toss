@@ -3,7 +3,7 @@
 import { FRIEND_BY_ID } from '../sim/defs';
 import { BARREL, CANNON, GRAVITY, muzzle } from '../sim/constants';
 import { drawHead } from './actors';
-import { cannonArt } from './cannon-art';
+import { CANNON_ART, drawCannonParts } from './cannon-art';
 import type { View } from './view';
 
 /** Ce que le jeu demande d'afficher autour du canon. */
@@ -22,26 +22,28 @@ export interface CannonScene {
 }
 
 /** Position du premier ami de la file. */
-const QUEUE_X = -2.4;
+const QUEUE_X = -3.8;
 
 export function drawCannon(v: View, scene: CannonScene, time: number) {
   drawQueue(v, scene, time);
-  const art = cannonArt();
   const a = scene.cannon.angle;
   const dir = { x: Math.cos(a), y: Math.sin(a) };
-  const back = scene.cannon.recoil * 0.45;
+  const back = scene.cannon.recoil * 0.6;
   const mouth = { x: CANNON.x + dir.x * (BARREL - back), y: CANNON.y + dir.y * (BARREL - back) };
-  v.pixel(art.wheel, CANNON.x - 0.55, 0.5, 1, 1);
-  v.pixel(art.carriage, CANNON.x - 0.1, 0.72, 1.7, 0.75);
+  drawCannonParts((img, x, y, w, h, angle) => v.pixel(img, CANNON.x + x, y, w, h, angle), a, back);
+  // la grosse tête de l'ami sort de la bouche du canon
   const L = scene.loaded;
-  // la grosse tête de l'ami dépasse de la bouche du canon
   if (L && L.hop >= 1) {
     const f = FRIEND_BY_ID[L.id];
-    drawHead(v, L.id, f?.color ?? '#fff', mouth.x + dir.x * 0.15, mouth.y + dir.y * 0.15 + 0.15, 1.2);
+    drawHead(
+      v,
+      L.id,
+      f?.color ?? '#fff',
+      mouth.x + dir.x * 0.25,
+      mouth.y + dir.y * 0.25,
+      CANNON_ART.bore * 0.85,
+    );
   }
-  const axis = 0.7 - back;
-  v.pixel(art.barrel, CANNON.x + dir.x * axis, CANNON.y + dir.y * axis, 2.3, 0.8, a);
-  v.pixel(art.wheel, CANNON.x + 0.35, 0.5, 1, 1);
   if (L && L.hop < 1) drawHop(v, L.id, L.hop, mouth);
   if (scene.aim) drawAim(v, scene.aim);
 }

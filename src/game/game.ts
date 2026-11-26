@@ -3,7 +3,7 @@
 import { sfx } from '../audio';
 import type { WorldDef } from '../levels';
 import { Renderer, type Scene } from '../render/renderer';
-import { CANNON, DT } from '../sim/constants';
+import { BARREL, CANNON, DT } from '../sim/constants';
 import type { LevelDef } from '../sim/level';
 import { createSim, type Sim } from '../sim/sim';
 import { playEvents } from './feedback';
@@ -84,8 +84,8 @@ export class Game {
         const reach = Math.max(80, R.view.cam.s * 2.4);
         const pivot = R.view.toScreen(CANNON.x, CANNON.y);
         const mouth = R.view.toScreen(
-          CANNON.x + Math.cos(this.angle) * 1.6,
-          CANNON.y + Math.sin(this.angle) * 1.6,
+          CANNON.x + Math.cos(this.angle) * BARREL * 0.8,
+          CANNON.y + Math.sin(this.angle) * BARREL * 0.8,
         );
         return Math.hypot(x - pivot.x, y - pivot.y) < reach || Math.hypot(x - mouth.x, y - mouth.y) < reach;
       },

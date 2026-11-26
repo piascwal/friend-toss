@@ -33,7 +33,7 @@ export class Camera {
       x1 = Math.max(x1, p.x + Math.max(e.w, e.h) / 2);
       y1 = Math.max(y1, p.y + e.h / 2);
     }
-    this.bounds = { x0: -5, x1: x1 + 2.5, y1: y1 + 2 };
+    this.bounds = { x0: -6.5, x1: x1 + 2.5, y1: y1 + 2 };
     this.jump(this.aimFrame(sim));
   }
 
