@@ -49,9 +49,21 @@ En vol, chaque ami est une grosse tête ronde à sa couleur : on le reconnaît d
 
 ## Les relous
 
-Une liste courte, comme dans le genre : le **fêtard** (petit, fragile), le **videur** (costaud), le
-**pilier** (gros, il faut l'écraser ou le faire exploser), et un **boss** par monde. Ils sont cerclés de
-vert (le boss de rose) pour qu'on sache toujours quoi viser.
+Une liste courte, comme dans le genre, choisie parmi les silhouettes les plus compactes de la banque :
+l'**habitué** (le petit, fragile), le **gardien** de hockey (le moyen, tout en protections), le **pilier**
+de rugby (le gros, il faut l'écraser ou le faire exploser), et un **boss** par monde. Touchés, ils
+s'écrasent et tremblent.
+
+## Le look « grosse tête »
+
+En vol, un ami doit se reconnaître d'un coup d'œil. Le jeu demande à la banque le look **grosse tête**
+(chibi) de chaque ami : `chibi_head`, `chibi_idle`, `chibi_fly`, `chibi_power`, `chibi_hit`, `chibi_win`.
+Tant qu'une image manque, il affiche à la place le portrait de l'ami dans un rond à sa couleur.
+
+Pour fournir ces images : ouvrir l'atelier de la banque (https://piascwal.github.io/sprite-bank/),
+choisir un ami, générer chaque pose « Grosse tête » avec son prompt, l'importer, puis **Exporter les
+changements** et déposer le `.zip` dans `characters/` de la banque. Une fois la banque à jour sur `main`,
+relancer la publication du jeu (onglet **Actions**, **Run workflow**).
 
 ## Les mondes
 

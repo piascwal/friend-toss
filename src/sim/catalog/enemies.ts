@@ -20,26 +20,26 @@ export interface EnemyDef {
 }
 
 export const ENEMIES = {
-  // la liste courte des relous : un petit, un moyen, un gros (plus un boss par monde)
-  fetard: {
-    label: 'Fêtard',
-    npc: 'fetard',
-    variants: 4,
-    w: 0.72,
-    h: 1.5,
-    hp: 22,
-    anim: 'sheet',
-    intro: 'Le fêtard : le petit relou. Fragile, une chute suffit.',
-  },
-  videur: {
-    label: 'Videur',
-    npc: 'videur',
+  // la liste courte des relous, choisis compacts et massifs : un petit, un moyen, un gros (plus un boss par monde)
+  habitue: {
+    label: 'Habitué',
+    npc: 'habitue',
     variants: 2,
     w: 0.85,
-    h: 1.7,
+    h: 1.5,
+    hp: 22,
+    anim: 'still',
+    intro: 'L’habitué : le petit relou. Fragile, une chute suffit.',
+  },
+  gardien: {
+    label: 'Gardien',
+    npc: 'gardien',
+    variants: 1,
+    w: 0.95,
+    h: 1.6,
     hp: 60,
     anim: 'sheet',
-    intro: 'Le videur : il encaisse. Tape fort ou fais-lui tomber quelque chose dessus.',
+    intro: 'Le gardien de hockey : tout en protections, il encaisse. Fais-lui tomber quelque chose dessus.',
   },
   pilier: {
     label: 'Pilier',

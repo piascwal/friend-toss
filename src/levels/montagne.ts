@@ -5,9 +5,9 @@ import type { WorldDef } from './index';
 function seisme() {
   const b = new Build();
   const a = b.fort(14, 0, 1, 2, { m: 'pierre', roof: 'pierre' });
-  b.in('videur', a.cell(0, 0)).in('fetard', a.cell(0, 1));
+  b.in('gardien', a.cell(0, 0)).in('habitue', a.cell(0, 1));
   const c = b.fort(19, 0, 2, 2, { m: 'pierre' });
-  b.in('fetard', c.cell(0, 0), 2).in('pilier', c.cell(1, 0)).in('fetard', c.cell(0, 1), 3);
+  b.in('habitue', c.cell(0, 0), 2).in('pilier', c.cell(1, 0)).in('habitue', c.cell(0, 1), 3);
   return b.level({
     id: '3-1',
     name: 'Séisme',
@@ -29,9 +29,9 @@ function avalanche() {
   b.ball(12.5, 5, 'pierre', 1.3);
   b.ball(15, 5, 'pierre', 1.3);
   const f = b.fort(21.5, 0, 2, 1, { m: 'glace' });
-  b.in('fetard', f.cell(0, 0)).in('videur', f.cell(1, 0));
+  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0));
   const t = b.fort(25.5, 0, 1, 2, { m: 'glace' });
-  b.in('fetard', t.cell(0, 0), 2).in('fetard', t.cell(0, 1), 3);
+  b.in('habitue', t.cell(0, 0), 2).in('habitue', t.cell(0, 1), 3);
   return b.level({
     id: '3-2',
     name: 'Avalanche',
@@ -51,10 +51,10 @@ function leRefuge() {
     [60, 0],
   ]);
   const f = b.fort(20, 2, 3, 2, { mats: ['pierre', 'glace'], taper: true, roof: 'pierre' });
-  b.in('fetard', f.cell(0, 0))
+  b.in('habitue', f.cell(0, 0))
     .in('pilier', f.cell(1, 0))
-    .in('fetard', f.cell(2, 0), 2)
-    .in('fetard', f.cell(0, 1), 3);
+    .in('habitue', f.cell(2, 0), 2)
+    .in('habitue', f.cell(0, 1), 3);
   b.add('menhir', 14.6, 2).add('menhir', 15.4, 2);
   return b.level({ id: '3-3', name: 'Le refuge', friends: ['lolo', 'tom', 'lolo', 'jbg'] });
 }
@@ -63,11 +63,11 @@ function laGrotte() {
   const b = new Build();
   b.plateau(14, 26, 6.5, 5.2);
   const f = b.fort(20, 0, 2, 2, { m: 'glace' });
-  b.in('fetard', f.cell(0, 0))
-    .in('fetard', f.cell(1, 0), 2)
-    .in('videur', f.cell(0, 1))
-    .in('fetard', f.cell(1, 1), 3);
-  b.in('fetard', b.fort(20, 6.5, 1, 1, { m: 'pierre' }).cell(0, 0), 4);
+  b.in('habitue', f.cell(0, 0))
+    .in('habitue', f.cell(1, 0), 2)
+    .in('gardien', f.cell(0, 1))
+    .in('habitue', f.cell(1, 1), 3);
+  b.in('habitue', b.fort(20, 6.5, 1, 1, { m: 'pierre' }).cell(0, 0), 4);
   b.cage(29, 0, 'roulie');
   return b.level({
     id: '3-4',
@@ -81,10 +81,10 @@ function givre() {
   const b = new Build();
   b.pillar(13, 0, 3, 'metal', 0.6);
   const f = b.fort(17.5, 0, 3, 2, { m: 'metal', ceil: 'pierre' });
-  b.in('videur', f.cell(0, 0))
+  b.in('gardien', f.cell(0, 0))
     .in('pilier', f.cell(1, 0))
-    .in('fetard', f.cell(2, 0))
-    .in('fetard', f.cell(1, 1), 2);
+    .in('habitue', f.cell(2, 0))
+    .in('habitue', f.cell(1, 1), 2);
   return b.level({
     id: '3-5',
     name: 'Givre',
@@ -108,10 +108,10 @@ function leCol() {
     [60, 0],
   ]);
   const a = b.fort(14.5, 3, 1, 2, { m: 'pierre' });
-  b.in('fetard', a.cell(0, 0)).in('fetard', a.cell(0, 1), 2);
-  b.in('videur', b.fort(22.2, 0.5, 1, 1, { m: 'glace' }).cell(0, 0));
+  b.in('habitue', a.cell(0, 0)).in('habitue', a.cell(0, 1), 2);
+  b.in('gardien', b.fort(22.2, 0.5, 1, 1, { m: 'glace' }).cell(0, 0));
   const c = b.fort(31, 3.5, 2, 2, { mats: ['glace', 'pierre'], roof: 'pierre' });
-  b.in('fetard', c.cell(0, 0), 3).in('pilier', c.cell(1, 0)).in('fetard', c.cell(1, 1), 4);
+  b.in('habitue', c.cell(0, 0), 3).in('pilier', c.cell(1, 0)).in('habitue', c.cell(1, 1), 4);
   b.add('tonneau-or', 34.5, 3.5);
   return b.level({ id: '3-6', name: 'Le col', friends: ['roulie', 'lolo', 'jbm', 'mat'] });
 }
@@ -121,11 +121,11 @@ function lesIlots() {
   b.plateau(13, 18, 3, 2);
   b.plateau(20, 25, 4.5, 3.5);
   b.plateau(27, 32, 2.5, 1.5);
-  b.in('fetard', b.fort(15.5, 3, 1, 1, { m: 'pierre' }).cell(0, 0));
+  b.in('habitue', b.fort(15.5, 3, 1, 1, { m: 'pierre' }).cell(0, 0));
   const m = b.fort(22.5, 4.5, 1, 2, { m: 'glace' });
-  b.in('fetard', m.cell(0, 0), 2).in('videur', m.cell(0, 1));
-  b.in('fetard', b.fort(29.5, 2.5, 1, 1).cell(0, 0), 3);
-  b.relou('fetard', 22.5, 0, 4);
+  b.in('habitue', m.cell(0, 0), 2).in('gardien', m.cell(0, 1));
+  b.in('habitue', b.fort(29.5, 2.5, 1, 1).cell(0, 0), 3);
+  b.relou('habitue', 22.5, 0, 4);
   return b.level({ id: '3-7', name: 'Les îlots', friends: ['jbg', 'lolo', 'roulie', 'tom'] });
 }
 
@@ -133,10 +133,10 @@ function lesMenhirs() {
   const b = new Build();
   b.dominoes(11, 0, 4, 1.4, 3.2, 'pierre');
   const f = b.fort(19.5, 0, 2, 2, { m: 'glace', roof: 'glace' });
-  b.in('fetard', f.cell(0, 0))
-    .in('fetard', f.cell(1, 0), 2)
-    .in('fetard', f.cell(0, 1), 3)
-    .in('videur', f.cell(1, 1));
+  b.in('habitue', f.cell(0, 0))
+    .in('habitue', f.cell(1, 0), 2)
+    .in('habitue', f.cell(0, 1), 3)
+    .in('gardien', f.cell(1, 1));
   return b.level({
     id: '3-8',
     name: 'Les dominos',
@@ -150,10 +150,10 @@ function leBarrage() {
   b.wall(12.5, 0, 2, 4, 'pierre');
   b.ball(13.5, 4, 'pierre', 1.2);
   const f = b.fort(19.5, 0, 3, 2, { m: 'glace', taper: true });
-  b.in('fetard', f.cell(0, 0))
+  b.in('habitue', f.cell(0, 0))
     .in('pilier', f.cell(1, 0))
-    .in('fetard', f.cell(2, 0), 2)
-    .in('fetard', f.cell(0, 1), 3);
+    .in('habitue', f.cell(2, 0), 2)
+    .in('habitue', f.cell(0, 1), 3);
   return b.level({ id: '3-9', name: 'Le barrage', friends: ['lolo', 'roulie', 'jbg', 'lolo'] });
 }
 
@@ -171,8 +171,8 @@ function leSommet() {
   ]);
   b.ball(15.5, 3, 'pierre', 1.2);
   const f = b.fort(26.5, 6, 3, 3, { mats: ['pierre', 'glace', 'pierre'], taper: true, roof: 'pierre' });
-  b.in('fetard', f.cell(0, 0)).in('videur', f.cell(1, 0)).in('fetard', f.cell(2, 0), 2);
-  b.in('pilier', f.cell(1, 1)).in('fetard', f.cell(0, 2), 3);
+  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0)).in('habitue', f.cell(2, 0), 2);
+  b.in('pilier', f.cell(1, 1)).in('habitue', f.cell(0, 2), 3);
   return b.level({ id: '3-10', name: 'Le sommet', friends: ['roulie', 'jbg', 'lolo', 'tom', 'mat'] });
 }
 
@@ -193,9 +193,9 @@ function laCrevasse() {
   b.ball(11, 4, 'pierre', 1.2);
   b.ball(12.6, 4, 'pierre', 1.2);
   const f = b.fort(19.5, 0, 3, 1, { m: 'pierre', ceil: 'glace' });
-  b.in('fetard', f.cell(0, 0)).in('pilier', f.cell(1, 0)).in('fetard', f.cell(2, 0), 2);
+  b.in('habitue', f.cell(0, 0)).in('pilier', f.cell(1, 0)).in('habitue', f.cell(2, 0), 2);
   const c = b.fort(29, 4, 2, 2, { m: 'glace' });
-  b.in('videur', c.cell(0, 0)).in('fetard', c.cell(1, 1), 3);
+  b.in('gardien', c.cell(0, 0)).in('habitue', c.cell(1, 1), 3);
   return b.level({ id: '3-11', name: 'La crevasse', friends: ['lolo', 'roulie', 'jbm', 'jbg'] });
 }
 
@@ -210,7 +210,7 @@ function yetiAlpha() {
   b.ball(29.2, roof, 'pierre', 1.2);
   b.roof(27, roof, 2.2, 'pierre', 1.1);
   const g = b.fort(16, 0, 1, 2, { m: 'pierre' });
-  b.in('videur', g.cell(0, 0)).in('fetard', g.cell(0, 1));
+  b.in('gardien', g.cell(0, 0)).in('habitue', g.cell(0, 1));
   b.relou('pilier', 36.5, 0);
   b.cage(39.5, 0, 'soso');
   return b.level({

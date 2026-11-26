@@ -111,6 +111,12 @@ export function posePath(id: string, pose: string): string | null {
   return null;
 }
 
+/** Image d'une pose seulement si le personnage l'a (sans repli) : pour les looks optionnels (chibi). */
+export function exactPose(id: string, name: string): Pic | null {
+  const file = characters.get(id)?.files[name];
+  return file ? pic(`characters/${id}/${file}`) : null;
+}
+
 export function pose(id: string, name: string): Pic | null {
   const path = posePath(id, name);
   return path ? pic(path) : null;
@@ -144,6 +150,15 @@ export async function loadNpcs() {
       if (res.ok) npcs.set(id, (await res.json()) as NpcFile);
     }),
   );
+  // relous sans image fixe : on découpe la première image de leur planche
+  const jobs: Promise<void>[] = [];
+  for (const [kind, def] of Object.entries(ENEMIES) as [EnemyKind, EnemyDef][]) {
+    const npc = npcs.get(def.npc);
+    npc?.variants.forEach((v, i) => {
+      if (!v.image && v.animation) jobs.push(cutStill(kind, i + 1, npc));
+    });
+  }
+  await Promise.all(jobs);
 }
 
 export interface Frame {
@@ -179,9 +194,12 @@ export function enemyFrame(kind: EnemyKind, variant: number, t: number, hurt: bo
   const v = npc?.variants[variant - 1] ?? npc?.variants[0];
   if (def.anim === 'sheet' && v?.animation) {
     const a = v.animation;
-    const anim = a.animations.find((x) => x.name === (hurt ? 'touche' : 'repos')) ?? a.animations[0]!;
+    const anim = a.animations.find((x) => x.name === (hurt ? 'touche' : 'repos'));
     const img = sheet(`npcs/${def.npc}/${a.sheet}`);
     if (!img) return null;
+    // sans animation de repos (planche de marche seule) : première image, immobile
+    if (!anim)
+      return { img, sx: 0, sy: a.animations[0]!.row * a.frameHeight, sw: a.frameWidth, sh: a.frameHeight };
     const f = Math.floor(t * anim.fps) % anim.frames;
     return { img, sx: f * a.frameWidth, sy: anim.row * a.frameHeight, sw: a.frameWidth, sh: a.frameHeight };
   }
@@ -197,8 +215,26 @@ export function enemyStillPath(kind: EnemyKind, variant = 1): string {
   return `npcs/${def.npc}/${v?.image ?? `${variant}.png`}`;
 }
 
+/** Première image des relous qui n'ont qu'une planche d'animation (calculée au chargement). */
+const sheetStills = new Map<string, string>();
+
 export function enemyStillUrl(kind: EnemyKind, variant = 1): string {
-  return BASE + enemyStillPath(kind, variant);
+  return sheetStills.get(`${kind}/${variant}`) ?? BASE + enemyStillPath(kind, variant);
+}
+
+/** Découpe la première image d'une planche d'animation (pour le HUD et le guide). */
+async function cutStill(kind: EnemyKind, variant: number, npc: NpcFile) {
+  const a = npc.variants[variant - 1]?.animation;
+  if (!a) return;
+  const img = new Image();
+  img.src = `${BASE}npcs/${npc.id}/${a.sheet}`;
+  await img.decode().catch(() => undefined);
+  if (!img.naturalWidth) return;
+  const c = document.createElement('canvas');
+  c.width = a.frameWidth;
+  c.height = a.frameHeight;
+  c.getContext('2d')!.drawImage(img, 0, -a.animations[0]!.row * a.frameHeight);
+  sheetStills.set(`${kind}/${variant}`, c.toDataURL());
 }
 
 /** Précharge les images d'un relou. */

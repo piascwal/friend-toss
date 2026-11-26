@@ -7,7 +7,7 @@ function doubleSaut() {
   b.pillar(13, 0, 6, 'metal', 0.6);
   b.pillar(13.6, 0, 6, 'pierre', 0.6);
   const f = b.fort(18.5, 0, 2, 2, { roof: 'bois' });
-  b.in('fetard', f.cell(0, 0)).in('fetard', f.cell(1, 0), 2).in('videur', f.cell(0, 1));
+  b.in('habitue', f.cell(0, 0)).in('habitue', f.cell(1, 0), 2).in('gardien', f.cell(0, 1));
   return b.level({
     id: '4-1',
     name: 'Double saut',
@@ -31,10 +31,10 @@ function lesDunes() {
     [60, 0],
   ]);
   const a = b.fort(15, 1.2, 1, 2);
-  b.in('fetard', a.cell(0, 0)).in('fetard', a.cell(0, 1), 2);
-  b.in('videur', b.fort(23, 0.4, 1, 1).cell(0, 0));
+  b.in('habitue', a.cell(0, 0)).in('habitue', a.cell(0, 1), 2);
+  b.in('gardien', b.fort(23, 0.4, 1, 1).cell(0, 0));
   const c = b.fort(33.5, 2, 2, 2, { roof: 'bois' });
-  b.in('fetard', c.cell(0, 0), 3).in('fetard', c.cell(1, 0), 4).in('fetard', c.cell(1, 1));
+  b.in('habitue', c.cell(0, 0), 3).in('habitue', c.cell(1, 0), 4).in('habitue', c.cell(1, 1));
   return b.level({ id: '4-2', name: 'Les dunes', friends: ['soso', 'mat', 'tom', 'roulian'] });
 }
 
@@ -43,7 +43,7 @@ function lesPneus() {
   b.stack(12.5, 0, ['pneus', 'pneus', 'pneus']);
   b.stack(13.4, 0, ['pneus', 'pneus']);
   const f = b.fort(18, 0, 2, 2, { roof: 'bois' });
-  b.in('fetard', f.cell(0, 0)).in('videur', f.cell(1, 0)).in('fetard', f.cell(1, 1), 2);
+  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0)).in('habitue', f.cell(1, 1), 2);
   b.cage(22.5, 0, 'elo');
   return b.level({
     id: '4-3',
@@ -59,8 +59,8 @@ function pirouette() {
   b.pillar(22, 0, 4.2, 'metal');
   b.plank(17.5, 4.2, 9.6, 'bois');
   const f = b.fort(17.5, 0, 3, 1);
-  b.in('fetard', f.cell(0, 0)).in('videur', f.cell(1, 0)).in('fetard', f.cell(2, 0), 2);
-  b.relou('fetard', 17.5, f.top, 3);
+  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0)).in('habitue', f.cell(2, 0), 2);
+  b.relou('habitue', 17.5, f.top, 3);
   return b.level({
     id: '4-4',
     name: 'La cabine de plage',
@@ -74,10 +74,10 @@ function tonneauxFusees() {
   b.add('tonneau-fusee', 9.5, 0, { a: -35 });
   b.add('tonneau-fusee', 10.8, 0, { a: -28 });
   const f = b.fort(17, 0, 2, 3, { mats: ['bois', 'pierre', 'bois'], roof: 'bois' });
-  b.in('fetard', f.cell(0, 0))
-    .in('videur', f.cell(1, 0))
-    .in('fetard', f.cell(1, 1), 2)
-    .in('fetard', f.cell(0, 2), 3);
+  b.in('habitue', f.cell(0, 0))
+    .in('gardien', f.cell(1, 0))
+    .in('habitue', f.cell(1, 1), 2)
+    .in('habitue', f.cell(0, 2), 3);
   return b.level({
     id: '4-5',
     name: 'Tonneaux-fusées',
@@ -92,11 +92,11 @@ function lePhare() {
     mats: ['pierre', 'pierre', 'bois', 'bois', 'glace', 'glace'],
     roof: 'pierre',
   });
-  b.in('videur', t.cell(0, 0))
-    .in('fetard', t.cell(0, 1))
-    .in('fetard', t.cell(0, 3), 2)
-    .in('fetard', t.cell(0, 5), 3);
-  b.in('fetard', b.fort(21, 0, 1, 1).cell(0, 0), 4);
+  b.in('gardien', t.cell(0, 0))
+    .in('habitue', t.cell(0, 1))
+    .in('habitue', t.cell(0, 3), 2)
+    .in('habitue', t.cell(0, 5), 3);
+  b.in('habitue', b.fort(21, 0, 1, 1).cell(0, 0), 4);
   return b.level({ id: '4-6', name: 'Le phare', friends: ['lolo', 'soso', 'jbg', 'elo'] });
 }
 
@@ -105,8 +105,8 @@ function pilotis() {
   b.dominoes(15, 0, 3, 2.5, 4);
   const deck = b.plank(17.5, 4, 6);
   const f = b.fort(17.5, deck, 2, 1, { roof: 'bois' });
-  b.in('fetard', f.cell(0, 0)).in('videur', f.cell(1, 0));
-  b.relou('fetard', 16.25, 0, 2).relou('fetard', 18.75, 0, 3);
+  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0));
+  b.relou('habitue', 16.25, 0, 2).relou('habitue', 18.75, 0, 3);
   b.cage(24, 0, 'roro');
   return b.level({ id: '4-7', name: 'La cabane sur pilotis', friends: ['soso', 'elo', 'roulie', 'mat'] });
 }
@@ -117,9 +117,9 @@ function smash() {
   b.pillar(15, 2, 3.4, 'pierre', 0.6);
   b.pillar(22, 2, 3.4, 'pierre', 0.6);
   b.plank(18.5, 5.4, 7.8, 'pierre', 0.5);
-  b.relou('fetard', 17, 2).add('tnt', 19.3, 2).relou('fetard', 21, 2, 2);
+  b.relou('habitue', 17, 2).add('tnt', 19.3, 2).relou('habitue', 21, 2, 2);
   b.add('pneus', 25.5, 0);
-  b.in('videur', b.fort(27.5, 0, 1, 1).cell(0, 0));
+  b.in('gardien', b.fort(27.5, 0, 1, 1).cell(0, 0));
   return b.level({
     id: '4-8',
     name: 'Smash',
@@ -133,19 +133,19 @@ function laJetee() {
   b.dominoes(13, 0, 4, 4, 3);
   const deck = b.plank(19, 3, 12.8);
   const f = b.fort(19, deck, 3, 1, { roof: 'bois' });
-  b.in('fetard', f.cell(0, 0)).in('videur', f.cell(1, 0)).in('fetard', f.cell(2, 0), 2);
-  b.relou('fetard', 15, 0, 3).relou('fetard', 23, 0, 4);
+  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0)).in('habitue', f.cell(2, 0), 2);
+  b.relou('habitue', 15, 0, 3).relou('habitue', 23, 0, 4);
   return b.level({ id: '4-9', name: 'La jetée', friends: ['roro', 'soso', 'jbg', 'lolo'] });
 }
 
 function chateauDeSable() {
   const b = new Build();
   const f = b.fort(19, 0, 4, 3, { mats: ['pierre', 'bois', 'glace'], taper: true, roof: 'bois' });
-  b.in('fetard', f.cell(0, 0))
+  b.in('habitue', f.cell(0, 0))
     .in('pilier', f.cell(1, 0))
-    .in('videur', f.cell(2, 0))
-    .in('fetard', f.cell(3, 0), 2);
-  b.in('fetard', f.cell(1, 1), 3).put('tnt', f.cell(2, 1)).in('fetard', f.cell(0, 2), 4);
+    .in('gardien', f.cell(2, 0))
+    .in('habitue', f.cell(3, 0), 2);
+  b.in('habitue', f.cell(1, 1), 3).put('tnt', f.cell(2, 1)).in('habitue', f.cell(0, 2), 4);
   return b.level({ id: '4-10', name: 'Le château de sable', friends: ['elo', 'roro', 'lolo', 'jbm', 'tom'] });
 }
 
@@ -155,10 +155,10 @@ function fuseesEnSerie() {
   b.add('tonneau-fusee', 10.7, 0, { a: -38 });
   b.add('tonneau-fusee', 11.9, 0, { a: -25 });
   const f = b.fort(19, 0, 3, 2, { m: 'pierre', roof: 'pierre' });
-  b.in('fetard', f.cell(0, 0))
+  b.in('habitue', f.cell(0, 0))
     .put('tnt', f.cell(1, 0))
-    .in('videur', f.cell(2, 0))
-    .in('fetard', f.cell(1, 1), 2);
+    .in('gardien', f.cell(2, 0))
+    .in('habitue', f.cell(1, 1), 2);
   b.in('pilier', b.fort(24.5, 0, 1, 1, { m: 'pierre' }).cell(0, 0));
   return b.level({ id: '4-11', name: 'Feu d’artifice', friends: ['roro', 'mat', 'elo', 'jbg', 'soso'] });
 }
@@ -173,7 +173,7 @@ function leChampion() {
   b.add('baril', 27, roof).add('baril', 31, roof);
   b.add('tnt', 26.5, 1.5);
   b.add('tonneau-fusee', 15, 0, { a: -35 });
-  b.in('videur', b.fort(19, 0, 1, 1).cell(0, 0));
+  b.in('gardien', b.fort(19, 0, 1, 1).cell(0, 0));
   b.relou('pilier', 38.5, 0);
   b.cage(41.5, 0, 'indianne');
   return b.level({

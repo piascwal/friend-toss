@@ -1,13 +1,10 @@
-/* Les acteurs : modules et objets des structures, relous (contour vert pour bien les repérer),
-   amis en vol (grosse tête ronde à leur couleur) et projectiles de pouvoir. */
-import { enemyFrame, pic, pose, spritePath } from '../assets';
+/* Les acteurs : modules et objets des structures, relous, amis en vol (look « grosse tête » de la banque
+   s'il existe, sinon leur portrait dans un rond à leur couleur) et projectiles de pouvoir. */
+import { enemyFrame, exactPose, pic, pose, spritePath } from '../assets';
 import type { Ent } from '../sim/entity';
 import type { Effects } from './effects';
 import { blockTexture, overlay, tntTexture } from './textures';
 import type { View } from './view';
-
-/** Couleur du contour des relous : on sait tout de suite quoi viser. */
-const RELOU_OUTLINE = '#7dff6b';
 
 /** Usure d'un objet : 0 intact, 1 fissuré, 2 très abîmé. */
 function wear(e: Ent) {
@@ -73,8 +70,6 @@ function portalGlow(v: View, x: number, y: number, h: number, time: number) {
 
 /* ------------------------------------------------------------ relous */
 
-const silhouette = document.createElement('canvas');
-
 export function drawEnemy(v: View, e: Ent, time: number) {
   const p = e.body.getPosition();
   const a = e.body.getAngle();
@@ -82,56 +77,19 @@ export function drawEnemy(v: View, e: Ent, time: number) {
   const f = enemyFrame(e.enemy!, e.variant, time + e.id * 0.37, e.hurt > 0);
   if (!f) return;
   const sheet = def.anim === 'sheet';
-  const h = e.h * (def.drawScale ?? 1) * (sheet ? 1.12 : 1.04);
+  let h = e.h * (def.drawScale ?? 1) * (sheet ? 1.12 : 1.04);
   let w = (h * f.sw) / f.sh;
   if (!sheet) w = Math.min(w, e.w * 1.6);
-  const jit = e.hurt > 0 ? (Math.random() - 0.5) * 0.08 : 0;
-  const cx = p.x + jit;
-  const cy = p.y + (h - e.h) / 2 - (sheet ? e.h * 0.02 : 0);
-  const src: [number, number, number, number] = [f.sx, f.sy, f.sw, f.sh];
-  outline(v, f.img, src, cx, cy, w, h, a, def.boss ? '#ff3d7f' : RELOU_OUTLINE);
-  v.pic(f.img, cx, cy, w, h, a, false, src);
+  // touché : il s'écrase un instant et tremble ; au repos, il respire
+  if (e.hurt > 0) {
+    w *= 1.1;
+    h *= 0.88;
+  } else h *= 1 + Math.sin(time * 3 + e.id) * 0.015;
+  const jit = e.hurt > 0 ? (Math.random() - 0.5) * 0.1 : 0;
+  const cy = p.y - e.h / 2 + h / 2 - (sheet ? e.h * 0.02 : 0);
+  v.pic(f.img, p.x + jit, cy, w, h, a, false, [f.sx, f.sy, f.sw, f.sh]);
   if (e.frozen) v.pixel(overlay(e.w, e.h, 0, true, e.id), p.x, p.y, e.w * 1.1, e.h * 1.05, a);
   if (e.hp < e.maxHp || def.boss) lifeBar(v, p.x, p.y + e.h / 2 + 0.3, e.w, Math.max(0, e.hp / e.maxHp));
-}
-
-/** Contour coloré : la silhouette du sprite, teintée, dessinée décalée tout autour. */
-function outline(
-  v: View,
-  img: CanvasImageSource,
-  src: [number, number, number, number],
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  a: number,
-  color: string,
-) {
-  const W = Math.max(1, Math.ceil(w * v.cam.s));
-  const H = Math.max(1, Math.ceil(h * v.cam.s));
-  if (silhouette.width < W) silhouette.width = W;
-  if (silhouette.height < H) silhouette.height = H;
-  const c = silhouette.getContext('2d')!;
-  c.clearRect(0, 0, silhouette.width, silhouette.height);
-  c.globalCompositeOperation = 'source-over';
-  c.drawImage(img, src[0], src[1], src[2], src[3], 0, 0, W, H);
-  c.globalCompositeOperation = 'source-in';
-  c.fillStyle = color;
-  c.fillRect(0, 0, W, H);
-  c.globalCompositeOperation = 'source-over';
-  const d = 3 / v.cam.s;
-  const part: [number, number, number, number] = [0, 0, W, H];
-  for (const [dx, dy] of [
-    [d, 0],
-    [-d, 0],
-    [0, d],
-    [0, -d],
-    [d, d],
-    [-d, -d],
-    [d, -d],
-    [-d, d],
-  ])
-    v.pic(silhouette, x + dx!, y + dy!, w, h, a, false, part);
 }
 
 function lifeBar(v: View, x: number, y: number, w: number, r: number) {
@@ -150,8 +108,13 @@ function lifeBar(v: View, x: number, y: number, w: number, r: number) {
 /** Diamètre de la tête d'un ami en vol (m) : bien plus gros que son corps physique, pour le reconnaître. */
 export const HEAD = 1.25;
 
-/** Grosse tête ronde : le portrait de l'ami dans un cercle épais à sa couleur. */
+/**
+ * Grosse tête : l'image « tête seule » du look chibi si la banque l'a, sinon le portrait de l'ami dans
+ * un rond épais à sa couleur.
+ */
 export function drawHead(v: View, id: string, color: string, x: number, y: number, d: number, angle = 0) {
+  const chibi = exactPose(id, 'chibi_head');
+  if (chibi) return v.pic(chibi, x, y, (d * 1.15 * chibi.width) / chibi.height, d * 1.15, angle);
   const ctx = v.ctx;
   const X = v.sx(x);
   const Y = v.sy(y);
@@ -197,7 +160,22 @@ export function drawProjectile(v: View, e: Ent, time: number) {
   if (speed > 12) speedLines(v, p.x, p.y, vel.x / speed, vel.y / speed, f.color);
   // la tête roule après l'impact, tourbillonne pendant la pirouette
   const angle = e.mode === 'spin' ? time * 14 : e.impactAt !== undefined ? e.body.getAngle() : 0;
-  drawHead(v, f.id, f.color, p.x, p.y, e.kind === 'clone' ? HEAD * 0.85 : HEAD, angle);
+  const size = e.kind === 'clone' ? HEAD * 0.85 : HEAD;
+  const body = chibiInFlight(e);
+  if (body) v.pic(body, p.x, p.y + size * 0.15, (size * 1.4 * body.width) / body.height, size * 1.4, angle);
+  else drawHead(v, f.id, f.color, p.x, p.y, size, angle);
+}
+
+/** Image du look chibi pour un ami en vol (sonné après l'impact, pouvoir déclenché, ou en vol). */
+function chibiInFlight(e: Ent) {
+  const id = e.friend!.id;
+  const name =
+    e.impactAt !== undefined
+      ? 'chibi_hit'
+      : e.powerUsed && e.friend!.power !== 'none'
+        ? 'chibi_power'
+        : 'chibi_fly';
+  return exactPose(id, name) ?? exactPose(id, 'chibi_fly');
 }
 
 function speedLines(v: View, x: number, y: number, dx: number, dy: number, color: string) {

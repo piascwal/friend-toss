@@ -888,9 +888,6 @@ body:not(.playing) #hud {
 }
 .enemy-icon {
   margin-right: 10px;
-  box-shadow:
-    0 0 0 3px var(--ink),
-    0 0 0 5px #7dff6b;
 }
 .enemy-icon.boss {
   width: 40px;
