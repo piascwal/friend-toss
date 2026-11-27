@@ -1,7 +1,12 @@
-/* Ciel et lointains de chaque monde, dessinés en gros pixels dans un petit canevas. */
+/* Ciel et lointains de chaque monde, dessinés en pixels un peu gros dans un canevas réduit. */
 import type { Theme } from '../sim/level';
 import { px, rng } from './pixels';
 import { THEMES } from './themes';
+
+/** Le ciel est dessiné à 1/SKY_DIV de la résolution de l'écran, puis agrandi. */
+export const SKY_DIV = 2;
+/** Taille d'un « pixel de dessin » du ciel, en pixels du canevas réduit (garde les proportions). */
+const U = 3 / SKY_DIV;
 
 /**
  * Dessine le fond (ciel, soleil ou lune, collines, nuages) dans un petit canevas de w × h pixels,
@@ -25,11 +30,11 @@ export function drawSky(
   ctx.fillRect(0, 0, w, h);
   const r = rng(42);
   if (t.night) {
-    for (let i = 0; i < 90; i++) {
+    // peu d'étoiles, discrètes, en haut du ciel : elles ne gênent pas les points de visée
+    for (let i = 0; i < 22; i++) {
       const x = Math.floor(r() * w);
-      const y = Math.floor(r() * horizon * 0.8);
-      const tw = Math.sin(time * 2 + i) > 0.6 ? '#ffffff' : '#b9b3e8';
-      px(ctx, x, y, tw);
+      const y = Math.floor(r() * horizon * 0.45);
+      px(ctx, x, y, 'rgba(220,215,255,0.35)');
     }
     disc(ctx, w * 0.8, h * 0.16, h * 0.07, '#fff6d8');
     disc(ctx, w * 0.8 + h * 0.03, h * 0.16 - h * 0.02, h * 0.06, t.sky[0]);
@@ -45,12 +50,12 @@ export function drawSky(
     for (let i = 0; i < 6; i++) {
       const cx =
         ((((r() * w * 1.6 + time * (2 + i) - ox * 0.6) % (w * 1.6)) + w * 1.6) % (w * 1.6)) - w * 0.3;
-      const cy = 8 + r() * horizon * 0.35;
+      const cy = 8 * U + r() * horizon * 0.35;
       cloud(
         ctx,
         cx,
         cy,
-        10 + r() * 16,
+        (10 + r() * 16) * U,
         theme === 'festival' ? 'rgba(255,200,220,0.8)' : 'rgba(255,255,255,0.92)',
       );
     }
@@ -89,19 +94,19 @@ function bumps(
   col: string,
   city: boolean,
 ) {
-  const step = 26;
+  const step = Math.round(26 * U);
   const shift = Math.floor(ox * 8) % step;
   for (let x = -step - shift; x < w + step; x += step) {
     const k = Math.abs(Math.floor((x + Math.floor(ox * 8)) / step));
     const r = rng(k * 13 + 7);
-    const size = 10 + r() * 14;
+    const size = (10 + r() * 14) * U;
     if (city) {
       ctx.fillStyle = col;
       ctx.fillRect(x, Math.round(horizon - size * 1.4), step - 3, Math.round(size * 1.4) + 2);
       for (let wy = horizon - size * 1.4 + 3; wy < horizon - 3; wy += 4)
-        px(ctx, x + 3 + (k % 3) * 4, Math.round(wy), '#ffd86b');
+        px(ctx, x + 3 + (k % 3) * 4, Math.round(wy), 'rgba(255,216,107,0.5)');
     } else {
-      disc(ctx, x + step / 2, horizon + 2, size, col);
+      disc(ctx, x + step / 2, horizon + 2 * U, size, col);
       disc(ctx, x + step / 2 - size * 0.4, horizon - size * 0.35, size * 0.55, col);
     }
   }
@@ -151,7 +156,7 @@ function hills(
     return;
   }
   if (kind === 'city' || kind === 'city2') {
-    const bw = kind === 'city' ? 14 : 20;
+    const bw = Math.round((kind === 'city' ? 14 : 20) * U);
     for (let x = -bw - (Math.floor(ox * 6) % bw); x < w + bw; x += bw) {
       const k = Math.abs(Math.floor((x + Math.floor(ox * 6)) / bw));
       const hh = amp * (0.35 + rng(k * 31 + seed)() * 0.9);
@@ -160,14 +165,16 @@ function hills(
       const rr = rng(k * 17 + seed);
       for (let wy = base - hh + 3; wy < base - 3; wy += 4)
         for (let wx = x + 2; wx < x + bw - 4; wx += 3)
-          if (rr() < 0.3) px(ctx, wx, Math.round(wy), kind === 'city' ? '#ffd86b' : '#ffe9a0');
+          // fenêtres allumées, atténuées : elles ne se confondent pas avec les points de visée
+          if (rr() < 0.2)
+            px(ctx, wx, Math.round(wy), kind === 'city' ? 'rgba(255,216,107,0.4)' : 'rgba(255,233,160,0.5)');
     }
     return;
   }
   const pts: number[] = [];
   const phase = r() * 10;
   for (let x = 0; x <= w; x++) {
-    const X = x + ox * 8;
+    const X = x / U + ox * 8;
     let y: number;
     if (kind === 'peaks' || kind === 'peaks2') {
       const k = kind === 'peaks' ? 0.045 : 0.07;
@@ -198,10 +205,13 @@ function lights(ctx: CanvasRenderingContext2D, w: number, horizon: number, time:
   const cols = ['#ff3d7f', '#ffd23f', '#3dd6ff', '#7dff6b', '#c56bff'];
   for (let s = 0; s < 3; s++) {
     const y0 = horizon * (0.2 + s * 0.12);
-    for (let x = 0; x < w; x += 7) {
-      const sag = Math.sin(((x % 60) / 60) * Math.PI) * 6;
+    // guirlandes atténuées : elles restent derrière le jeu
+    ctx.globalAlpha = 0.45;
+    for (let x = 0; x < w; x += Math.round(7 * U)) {
+      const sag = Math.sin(((x % (60 * U)) / (60 * U)) * Math.PI) * 6 * U;
       const on = Math.sin(time * 3 + x * 0.3 + s) > -0.2;
       px(ctx, x, Math.round(y0 + sag), on ? cols[((x / 7 + s) % cols.length) | 0]! : '#553355', 2, 2);
     }
+    ctx.globalAlpha = 1;
   }
 }

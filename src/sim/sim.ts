@@ -17,7 +17,7 @@ import {
 } from './constants';
 import { isProjectile, type Ent, type EntKind, type Phase, type SimEvent } from './entity';
 import { usePower } from './powers';
-import { ENEMIES, FRIEND_BY_ID, MATS, type EnemyDef, type Mat } from './defs';
+import { ENEMIES, FRIEND_BY_ID, MATS, type EnemyDef, type Mat, type Shape } from './defs';
 import type { LevelDef } from './level';
 import { buildLevel } from './setup';
 
@@ -67,15 +67,7 @@ export class Sim {
   }
 
   /** Ajoute une entité (le corps physique est déjà créé). */
-  addEnt(
-    kind: EntKind,
-    body: Body,
-    w: number,
-    h: number,
-    shape: 'box' | 'circle' | 'triangle',
-    mat: Ent['mat'],
-    hp: number,
-  ): Ent {
+  addEnt(kind: EntKind, body: Body, w: number, h: number, shape: Shape, mat: Ent['mat'], hp: number): Ent {
     const ent: Ent = {
       id: this.nextId++,
       kind,

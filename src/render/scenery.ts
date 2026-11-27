@@ -1,7 +1,7 @@
 /* Le décor : ciel et lointains (petit canevas en gros pixels), sol en relief arrondi, plateformes. */
 import { terrainSurface, type LevelDef, type Theme } from '../sim/level';
 import { TEX } from './pixels';
-import { drawSky } from './sky';
+import { drawSky, SKY_DIV } from './sky';
 import { groundTile } from './textures';
 import { THEMES } from './themes';
 import type { View } from './view';
@@ -19,16 +19,16 @@ export class Scenery {
     this.surface = terrainSurface(level);
   }
 
-  /** Ciel et collines : dessinés au tiers de la résolution, puis agrandis (gros pixels). */
+  /** Ciel et collines : dessinés à résolution réduite, puis agrandis (pixels un peu gros). */
   drawBackground(time: number) {
     const v = this.view;
-    const w = Math.ceil(v.W / 3);
-    const h = Math.ceil(v.H / 3);
+    const w = Math.ceil(v.W / SKY_DIV);
+    const h = Math.ceil(v.H / SKY_DIV);
     if (this.sky.width !== w || this.sky.height !== h) {
       this.sky.width = w;
       this.sky.height = h;
     }
-    drawSky(this.skyCtx, this.theme, w, h, v.cam.x, time, v.sy(0) / 3);
+    drawSky(this.skyCtx, this.theme, w, h, v.cam.x, time, v.sy(0) / SKY_DIV);
     v.ctx.imageSmoothingEnabled = false;
     v.ctx.drawImage(this.sky, -8, -8, v.W + 16, v.H + 16);
   }

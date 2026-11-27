@@ -1,5 +1,6 @@
 /* Monde 4 — La Plage : dunes, murs, pneus, pilotis, tonneaux-fusées, phare, et le Champion. */
 import { Build } from './build';
+import { bunker, castle, rubble, scaffold, stilts } from './pieces';
 import type { WorldDef } from './index';
 
 function doubleSaut() {
@@ -21,35 +22,44 @@ function lesDunes() {
   b.relief([
     [-10, 0],
     [8, 0],
-    [12, 1.2],
-    [18, 1.2],
-    [20, 0.4],
-    [26, 0.4],
-    [29, 2],
-    [38, 2],
-    [40, 0],
+    [11, 3.5],
+    [14.5, 3.5],
+    [17, 0.5],
+    [20.5, 0.5],
+    [23, 3],
+    [30, 3],
+    [32, 0],
     [60, 0],
   ]);
-  const a = b.fort(15, 1.2, 1, 2);
-  b.in('habitue', a.cell(0, 0)).in('habitue', a.cell(0, 1), 2);
-  b.in('gardien', b.fort(23, 0.4, 1, 1).cell(0, 0));
-  const c = b.fort(33.5, 2, 2, 2, { roof: 'bois' });
-  b.in('habitue', c.cell(0, 0), 3).in('habitue', c.cell(1, 0), 4).in('habitue', c.cell(1, 1));
-  return b.level({ id: '4-2', name: 'Les dunes', friends: ['soso', 'mat', 'tom', 'roulian'] });
+  rubble(b, 12, 3.5, 1, 17, ['bois']);
+  b.relou('habitue', 18.7, 0.5);
+  const f = b.fort(26.8, 3, 1, 2, { roof: 'bois' });
+  b.in('gardien', f.cell(0, 0)).in('habitue', f.cell(0, 1), 2);
+  b.in('habitue', b.fort(35, 0, 1, 1, { roof: 'bois' }).cell(0, 0), 3);
+  return b.level({
+    id: '4-2',
+    name: 'Les dunes',
+    friends: ['soso', 'mat', 'tom', 'roulian'],
+    tip: 'Des relous cachés derrière les dunes : SOSO rebondit par-dessus.',
+  });
 }
 
 function lesPneus() {
   const b = new Build();
-  b.stack(12.5, 0, ['pneus', 'pneus', 'pneus']);
-  b.stack(13.4, 0, ['pneus', 'pneus']);
-  const f = b.fort(18, 0, 2, 2, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0)).in('habitue', f.cell(1, 1), 2);
-  b.cage(22.5, 0, 'elo');
+  b.stack(12.5, 0, ['pneus', 'pneus', 'pneus', 'pneus']);
+  b.stack(13.4, 0, ['pneus', 'pneus', 'pneus']);
+  const f = b.fort(16.6, 0, 1, 2, { roof: 'bois' });
+  b.in('habitue', f.cell(0, 0)).in('habitue', f.cell(0, 1), 2);
+  b.stack(19.3, 0, ['pneus', 'pneus', 'pneus', 'pneus']);
+  b.stack(20.2, 0, ['pneus', 'pneus', 'pneus', 'pneus']);
+  const c = b.fort(24.2, 0, 2, 1, { crenels: 'bois' });
+  b.in('gardien', c.cell(0, 0)).in('habitue', c.cell(1, 0), 3);
+  b.cage(28.5, 0, 'elo');
   return b.level({
     id: '4-3',
     name: 'Les pneus',
     friends: ['soso', 'lolo', 'jbg', 'mat'],
-    tip: 'Les pneus sont indestructibles : passe par-dessus.',
+    tip: 'Les pneus sont indestructibles : passe par-dessus, ou tombe entre deux murs.',
   });
 }
 
@@ -88,26 +98,37 @@ function tonneauxFusees() {
 
 function lePhare() {
   const b = new Build();
-  const t = b.fort(17, 0, 1, 6, {
-    mats: ['pierre', 'pierre', 'bois', 'bois', 'glace', 'glace'],
-    roof: 'pierre',
+  b.relief([
+    [-10, 0],
+    [17, 0],
+    [19, 2],
+    [27.5, 2],
+    [29.5, 0],
+    [60, 0],
+  ]);
+  b.in('habitue', stilts(b, 12.5, 0, 2.2));
+  const t = b.fort(23.4, 2, 1, 5, {
+    mats: ['pierre', 'pierre', 'glace', 'glace', 'glace'],
+    w: 2.2,
+    h: 1.8,
+    roof: 'metal',
   });
-  b.in('gardien', t.cell(0, 0))
-    .in('habitue', t.cell(0, 1))
-    .in('habitue', t.cell(0, 3), 2)
-    .in('habitue', t.cell(0, 5), 3);
-  b.in('habitue', b.fort(21, 0, 1, 1).cell(0, 0), 4);
-  return b.level({ id: '4-6', name: 'Le phare', friends: ['lolo', 'soso', 'jbg', 'elo'] });
+  b.in('gardien', t.cell(0, 0)).in('habitue', t.cell(0, 2), 2).in('habitue', t.cell(0, 4), 3);
+  return b.level({
+    id: '4-6',
+    name: 'Le phare',
+    friends: ['lolo', 'soso', 'jbg', 'elo'],
+    tip: 'Le phare est haut et étroit : ELO, en pirouette, ricoche d’un étage à l’autre.',
+  });
 }
 
 function pilotis() {
   const b = new Build();
-  b.dominoes(15, 0, 3, 2.5, 4);
-  const deck = b.plank(17.5, 4, 6);
-  const f = b.fort(17.5, deck, 2, 1, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0));
-  b.relou('habitue', 16.25, 0, 2).relou('habitue', 18.75, 0, 3);
-  b.cage(24, 0, 'roro');
+  b.in('habitue', stilts(b, 12.5, 0, 2));
+  b.in('gardien', stilts(b, 18.2, 0, 3.6));
+  b.in('habitue', stilts(b, 23.9, 0, 2.6), 2);
+  b.relou('habitue', 18.2, 0, 3);
+  b.cage(28.5, 0, 'roro');
   return b.level({ id: '4-7', name: 'La cabane sur pilotis', friends: ['soso', 'elo', 'roulie', 'mat'] });
 }
 
@@ -130,22 +151,37 @@ function smash() {
 
 function laJetee() {
   const b = new Build();
-  b.dominoes(13, 0, 4, 4, 3);
-  const deck = b.plank(19, 3, 12.8);
-  const f = b.fort(19, deck, 3, 1, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(1, 0)).in('habitue', f.cell(2, 0), 2);
-  b.relou('habitue', 15, 0, 3).relou('habitue', 23, 0, 4);
-  return b.level({ id: '4-9', name: 'La jetée', friends: ['roro', 'soso', 'jbg', 'lolo'] });
+  for (const x of [11, 15.5, 20, 24.5, 29]) b.pillar(x, 0, 2.5, 'bois', 0.5);
+  const deck = b.plank(20, 2.5, 19, 'bois', 0.5);
+  const a = b.fort(13.2, deck, 1, 1, { roof: 'bois' });
+  b.in('habitue', a.cell(0, 0));
+  b.stack(17.6, deck, ['tonneau', 'tonneau']);
+  const c = b.fort(22.5, deck, 2, 1, { m: 'glace', roof: 'bois' });
+  b.in('gardien', c.cell(0, 0)).in('habitue', c.cell(1, 0), 2);
+  b.relou('habitue', 17.7, 0, 3);
+  b.relou('habitue', 27, 0, 4);
+  return b.level({
+    id: '4-9',
+    name: 'La jetée',
+    friends: ['roro', 'soso', 'jbg', 'lolo'],
+    tip: 'Deux relous se cachent sous la jetée : RORO smashe pile entre les poteaux.',
+  });
 }
 
 function chateauDeSable() {
   const b = new Build();
-  const f = b.fort(19, 0, 4, 3, { mats: ['pierre', 'bois', 'glace'], taper: true, roof: 'bois' });
-  b.in('habitue', f.cell(0, 0))
-    .in('pilier', f.cell(1, 0))
-    .in('gardien', f.cell(2, 0))
-    .in('habitue', f.cell(3, 0), 2);
-  b.in('habitue', f.cell(1, 1), 3).put('tnt', f.cell(2, 1)).in('habitue', f.cell(0, 2), 4);
+  const c = castle(b, 22, 0, {
+    m: 'pierre',
+    mats: ['pierre', 'bois', 'bois'],
+    cols: 2,
+    floors: 2,
+    towers: 3,
+  });
+  b.in('pilier', c.keep.cell(0, 0)).in('habitue', c.keep.cell(1, 1), 2);
+  b.in('habitue', c.left.cell(0, 2), 3)
+    .in('gardien', c.right.cell(0, 0))
+    .in('habitue', c.right.cell(0, 2), 4);
+  b.put('tonneau-or', c.keep.cell(0, 1));
   return b.level({ id: '4-10', name: 'Le château de sable', friends: ['elo', 'roro', 'lolo', 'jbm', 'tom'] });
 }
 
@@ -154,17 +190,17 @@ function fuseesEnSerie() {
   b.add('tonneau-fusee', 9.5, 0, { a: -30 });
   b.add('tonneau-fusee', 10.7, 0, { a: -38 });
   b.add('tonneau-fusee', 11.9, 0, { a: -25 });
-  const f = b.fort(19, 0, 3, 2, { m: 'pierre', roof: 'pierre' });
-  b.in('habitue', f.cell(0, 0))
-    .put('tnt', f.cell(1, 0))
-    .in('gardien', f.cell(2, 0))
-    .in('habitue', f.cell(1, 1), 2);
-  b.in('pilier', b.fort(24.5, 0, 1, 1, { m: 'pierre' }).cell(0, 0));
+  const s = scaffold(b, 19.5, 0, 3, 3, 'metal');
+  b.in('habitue', s.cell(0, 0)).put('tnt', s.cell(1, 0)).in('gardien', s.cell(2, 0));
+  b.in('habitue', s.cell(1, 1), 2).put('baril', s.cell(0, 2)).in('habitue', s.cell(2, 2), 3);
+  b.in('pilier', bunker(b, 27.5, 0, 1).cell(0, 0));
   return b.level({ id: '4-11', name: 'Feu d’artifice', friends: ['roro', 'mat', 'elo', 'jbg', 'soso'] });
 }
 
 function leChampion() {
   const b = new Build();
+  const t = b.fort(17.5, 0, 1, 3, { mats: ['pierre', 'bois', 'bois'], crenels: 'pierre' });
+  b.in('gardien', t.cell(0, 0)).in('habitue', t.cell(0, 2));
   b.plateau(22, 36, 1.5);
   b.relou('champion', 29, 1.5);
   b.stack(25, 1.5, ['pneus', 'pneus', 'pneus']);
@@ -172,10 +208,10 @@ function leChampion() {
   const roof = b.plank(29, 4.89, 9.4, 'metal');
   b.add('baril', 27, roof).add('baril', 31, roof);
   b.add('tnt', 26.5, 1.5);
-  b.add('tonneau-fusee', 15, 0, { a: -35 });
-  b.in('gardien', b.fort(19, 0, 1, 1).cell(0, 0));
-  b.relou('pilier', 38.5, 0);
-  b.cage(41.5, 0, 'indianne');
+  b.add('tonneau-fusee', 12, 0, { a: -35 });
+  const s = scaffold(b, 39.5, 0, 1, 2);
+  b.in('pilier', s.cell(0, 0)).in('habitue', s.cell(0, 1), 2);
+  b.cage(43.5, 0, 'indianne');
   return b.level({
     id: '4-12',
     name: 'BOSS : le Champion',

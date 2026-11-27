@@ -81,7 +81,14 @@ relancer la publication du jeu (onglet **Actions**, **Run workflow**).
 ## Les mondes
 
 5 mondes de 12 niveaux. Chaque monde apprend une ou deux mécaniques, les combine sur du relief
-(collines, falaises, gradins, îlots, grottes), puis finit par une grande forteresse ou un boss.
+(collines, falaises, gradins, îlots flottants, grottes), puis finit par une grande forteresse ou un boss.
+
+Hors premiers niveaux et niveaux qui présentent un pouvoir, les constructions sont composées :
+châteaux crénelés, échafaudages hauts et fragiles, éboulis, ponts entre deux tours, cabanes sur
+pilotis. Certaines appellent un pouvoir plutôt qu'un autre, sans l'imposer : une **cheminée** (relou au
+fond d'un puits) pour LOLO, le palet de MAR-1 ou le smash de RORO ; un relou **derrière un mur** ou une
+dune pour SOSO ; une **grotte** ou un long étage pour INDIANNE ; des relous **alignés** derrière du bois
+pour BUBU ; un **phare** étroit pour les ricochets d'ELO ; des **serres** de glace pour TOM.
 
 1. **Le Camping** : bois, étages, roues, TNT, collines.
 2. **Le Festival** : barils et TNT, glace, enceintes en métal, gradins ; boss **DJ Boucle**.
@@ -126,7 +133,8 @@ src/sim/                 simulation (sans navigateur)
   sim.ts                 un niveau en cours : tir, dégâts, explosions, score, victoire
   powers.ts              les pouvoirs des amis (une fonction par pouvoir)
 src/levels/              les niveaux : un fichier par monde, l'outil de construction (build.ts),
-                         les mini-scènes de démonstration des pouvoirs (demos.ts)
+                         les morceaux de décor prêts à poser (pieces.ts), les mini-scènes de
+                         démonstration des pouvoirs (demos.ts)
 src/render/              affichage canvas
   view.ts                coordonnées monde ↔ écran, dessin des images
   camera.ts              mise en scène : ouverture, visée, suivi, zoom au doigt
@@ -146,8 +154,11 @@ tests/                   niveaux bien construits ; solveur (tests/solve/)
 ### Ajouter un niveau
 
 Dans le fichier de son monde (`src/levels/<monde>.ts`), une fonction construit le niveau avec `Build`, module par module : blocs,
-poutres et poteaux épais, ronds, toits, pièces, forteresses (`fort`, avec des cases pour loger les
-relous), murs, pyramides, dominos, relief (`relief`) et plateformes (positions en mètres,
+poutres et poteaux épais, ronds, toits, cadres creux, créneaux, pièces, forteresses (`fort`, avec des
+cases pour loger les relous), murs, pyramides, dominos, relief (`relief`), plateformes et îlots
+flottants (`island`). `pieces.ts` assemble ces modules en morceaux plus grands et paramétrables
+(`castle`, `scaffold`, `chimney`, `stilts`, `rubble`, `bridge`, `cave`, `bunker`, `greenhouse`) :
+varier leurs tailles, matériaux et graines plutôt que recopier la même forme (positions en mètres,
 `x = 0` à 2 m devant le canon, `y` = bas de la pièce), puis on l'ajoute à son monde. `npm test` vérifie que la
 structure tient debout, `npm run solve` qu'elle est gagnable.
 

@@ -1,6 +1,6 @@
 /* Ce que contient un niveau en cours : entités (objets, relous, projectiles) et événements pour l'affichage. */
 import type { Body } from 'planck';
-import type { EnemyDef, EnemyKind, FriendDef, Mat, ObjDef, ObjKind } from './defs';
+import type { EnemyDef, EnemyKind, FriendDef, Mat, ObjDef, ObjKind, Shape } from './defs';
 
 export type EntKind = 'block' | 'enemy' | 'friend' | 'clone' | 'ball' | 'puck' | 'pet';
 
@@ -10,7 +10,7 @@ export interface Ent {
   body: Body;
   w: number;
   h: number;
-  shape: 'box' | 'circle' | 'triangle';
+  shape: Shape;
   mat: Mat | 'enemy' | 'friend';
   hp: number;
   maxHp: number;

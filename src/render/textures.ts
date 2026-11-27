@@ -1,5 +1,5 @@
 /* Textures dessinées par le jeu : modules (bois, glace, pierre, métal), TNT, fissures et givre, sol. */
-import type { Mat } from '../sim/defs';
+import { FRAME, type Mat, type Shape } from '../sim/defs';
 import type { Theme } from '../sim/level';
 import { canvas, lighten, px, rgb, rng, TEX } from './pixels';
 import { THEMES } from './themes';
@@ -25,7 +25,7 @@ export function blockTexture(
   mat: Mat,
   w: number,
   h: number,
-  shape: 'box' | 'circle' | 'triangle',
+  shape: Shape,
   stage: number,
   frozen: boolean,
 ): HTMLCanvasElement {
@@ -43,6 +43,11 @@ export function blockTexture(
     const py = y + 0.5;
     if (shape === 'circle') return (px - W / 2) ** 2 / (W / 2) ** 2 + (py - H / 2) ** 2 / (H / 2) ** 2 <= 1;
     if (shape === 'triangle') return Math.abs(px - W / 2) <= (py / H) * (W / 2) + 0.3;
+    // cadre : un carré vide, côtés épais d'un cinquième
+    if (shape === 'frame') {
+      const t = Math.max(2, Math.round(Math.min(W, H) * FRAME));
+      if (px > t && px < W - t && py > t && py < H - t) return false;
+    }
     const cx = Math.min(Math.max(px, rad), W - rad);
     const cy = Math.min(Math.max(py, rad), H - rad);
     return (px - cx) ** 2 + (py - cy) ** 2 <= rad * rad;

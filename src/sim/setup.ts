@@ -1,7 +1,7 @@
 /* Construction d'un niveau dans le monde physique : sol (relief et plateformes), objets, relous,
    paires de téléporteurs. */
 import { Box, Chain, Circle, Polygon, Vec2 } from 'planck';
-import { ENEMIES, MATS, OBJECTS, type EnemyDef, type EnemyKind, type ObjDef } from './defs';
+import { ENEMIES, FRAME, MATS, OBJECTS, type EnemyDef, type EnemyKind, type ObjDef } from './defs';
 import { terrainSurface, type ItemDef } from './level';
 import { chamfered } from './shapes';
 import type { Sim } from './sim';
@@ -64,7 +64,17 @@ function addItem(sim: Sim, item: ItemDef) {
       shape: new Polygon([new Vec2(-w / 2, -h / 2), new Vec2(w / 2, -h / 2), new Vec2(0, h / 2)]),
       ...fixture,
     });
-  else if (special?.type === 'portal') {
+  else if (def.shape === 'frame') {
+    // cadre creux : quatre côtés dans le même corps
+    const t = Math.min(w, h) * FRAME;
+    for (const [hw, hh, ox, oy] of [
+      [w / 2, t / 2, 0, h / 2 - t / 2],
+      [w / 2, t / 2, 0, -h / 2 + t / 2],
+      [t / 2, h / 2 - t, -w / 2 + t / 2, 0],
+      [t / 2, h / 2 - t, w / 2 - t / 2, 0],
+    ] as const)
+      body.createFixture({ shape: new Box(hw, hh, new Vec2(ox, oy), 0), ...fixture });
+  } else if (special?.type === 'portal') {
     body.createFixture({ shape: new Box(w * 0.32, h * 0.38, new Vec2(0, 0), 0), ...fixture });
   } else body.createFixture({ shape: chamfered(w, h, Math.min(w, h) * 0.16), ...fixture });
   const hp = def.hp ?? mat.hp;

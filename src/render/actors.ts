@@ -213,13 +213,17 @@ function drawFireball(v: View, x: number, y: number, time: number) {
   ctx.fill();
 }
 
-/** Tracé pointillé d'un tir. */
+/** Tracé pointillé d'un tir : points clairs cernés de sombre, lisibles sur tous les fonds. */
 export function drawTrail(v: View, trail: { x: number; y: number }[], color: string) {
   const ctx = v.ctx;
-  ctx.fillStyle = color;
   for (let i = 0; i < trail.length; i += 4) {
     const p = trail[i]!;
-    const r = i % 8 === 0 ? 4 : 3;
-    ctx.fillRect(Math.round(v.sx(p.x) - r / 2), Math.round(v.sy(p.y) - r / 2), r, r);
+    const r = i % 8 === 0 ? 5 : 4;
+    const X = Math.round(v.sx(p.x) - r / 2);
+    const Y = Math.round(v.sy(p.y) - r / 2);
+    ctx.fillStyle = 'rgba(26,16,48,0.7)';
+    ctx.fillRect(X - 1, Y - 1, r + 2, r + 2);
+    ctx.fillStyle = color;
+    ctx.fillRect(X, Y, r, r);
   }
 }

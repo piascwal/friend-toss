@@ -15,13 +15,19 @@ export type Special =
   | { type: 'gold' }
   | { type: 'cage' };
 
+/** Forme d'un objet : boîte, rond, triangle, ou cadre creux (un carré vide, ses quatre côtés). */
+export type Shape = 'box' | 'circle' | 'triangle' | 'frame';
+
+/** Épaisseur des côtés d'un cadre, en part de sa taille. */
+export const FRAME = 0.2;
+
 export interface ObjDef {
   label: string;
   sprite?: SpriteRef;
   w: number;
   h: number;
   mat: Mat;
-  shape: 'box' | 'circle' | 'triangle';
+  shape: Shape;
   /** Objet fixe (trampoline, téléporteur). */
   fixed?: boolean;
   special?: Special;
@@ -299,6 +305,10 @@ export const OBJECTS = {
     intro: 'Boulet de pierre : pousse-le, il dévale et écrase tout.',
   },
   'rond-metal': { label: 'Boulet de métal', w: 1, h: 1, mat: 'metal', shape: 'circle' },
+  cadre: { label: 'Cadre en bois', w: 1, h: 1, mat: 'wood', shape: 'frame' },
+  'cadre-glace': { label: 'Cadre de glace', w: 1, h: 1, mat: 'ice', shape: 'frame' },
+  'cadre-pierre': { label: 'Cadre de pierre', w: 1, h: 1, mat: 'stone', shape: 'frame' },
+  'cadre-metal': { label: 'Cadre de métal', w: 1, h: 1, mat: 'metal', shape: 'frame' },
   coin: { label: 'Toit en bois', w: 1.2, h: 0.8, mat: 'wood', shape: 'triangle' },
   'coin-glace': { label: 'Toit de glace', w: 1.2, h: 0.8, mat: 'ice', shape: 'triangle' },
   'coin-pierre': { label: 'Toit de pierre', w: 1.2, h: 0.8, mat: 'stone', shape: 'triangle' },

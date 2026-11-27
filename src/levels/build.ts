@@ -21,6 +21,10 @@ export interface FortOptions {
   taper?: boolean;
   /** Toit en triangle au sommet. */
   roof?: M;
+  /** Épaisseur des poteaux et plafonds (T par défaut ; plus fin pour un échafaudage). */
+  t?: number;
+  /** Créneaux sur le dernier plafond (château). */
+  crenels?: M;
 }
 
 export interface Fort {
@@ -43,6 +47,12 @@ const BALL: Record<M, ObjKind> = {
   glace: 'rond-glace',
   pierre: 'rond-pierre',
   metal: 'rond-metal',
+};
+const FRAME_K: Record<M, ObjKind> = {
+  bois: 'cadre',
+  glace: 'cadre-glace',
+  pierre: 'cadre-pierre',
+  metal: 'cadre-metal',
 };
 const WEDGE: Record<M, ObjKind> = {
   bois: 'coin',
@@ -120,6 +130,20 @@ export class Build {
     return y + d;
   }
 
+  /** Cadre creux (carré évidé) : léger, on voit à travers, il se brise vite. */
+  frame(x: number, y: number, m: M = 'bois', s = 1): number {
+    this.items.push({ k: FRAME_K[m], x, y, w: s, h: s });
+    return y + s;
+  }
+
+  /** Créneaux : petits blocs espacés sur une longueur `len` centrée en x (haut des murs de château). */
+  crenels(x: number, y: number, len: number, m: M = 'pierre', s = 0.5): number {
+    const n = Math.max(2, Math.floor((len + s) / (1.7 * s)));
+    const gap = (len - s) / (n - 1);
+    for (let i = 0; i < n; i++) this.block(x - len / 2 + s / 2 + i * gap, y, m, s);
+    return y + s;
+  }
+
   /** Toit triangulaire. */
   roof(x: number, y: number, w = 1.2, m: M = 'bois', h = w * 0.6): number {
     this.items.push({ k: WEDGE[m], x, y, w, h });
@@ -134,10 +158,10 @@ export class Build {
   }
 
   /** Rangée de pièces qui partagent leurs poteaux ; renvoie le haut du plafond. */
-  rooms(x0: number, y: number, n: number, w: number, h: number, m: M = 'bois', ceil: M = m): number {
-    for (let i = 0; i <= n; i++) this.pillar(x0 + i * (w - T) + T / 2, y, h, m);
-    const len = n * (w - T) + T;
-    return this.plank(x0 + len / 2, y + h, len + 0.3, ceil);
+  rooms(x0: number, y: number, n: number, w: number, h: number, m: M = 'bois', ceil: M = m, t = T): number {
+    for (let i = 0; i <= n; i++) this.pillar(x0 + i * (w - t) + t / 2, y, h, m, t);
+    const len = n * (w - t) + t;
+    return this.plank(x0 + len / 2, y + h, len + 0.3, ceil, t);
   }
 
   /** Tour de plusieurs étages de pièces. */
@@ -155,17 +179,20 @@ export class Build {
   fort(x: number, y: number, cols: number, floors: number, o: FortOptions = {}): Fort {
     const w = o.w ?? ROOM_W;
     const h = o.h ?? ROOM_H;
-    const step = w - T;
+    const t = o.t ?? T;
+    const step = w - t;
     const cells: { x: number; y: number }[][] = [];
     let top = y;
+    let n = cols;
     for (let f = 0; f < floors; f++) {
-      const n = o.taper ? Math.max(1, cols - f) : cols;
-      const x0 = x - (n * step + T) / 2;
+      n = o.taper ? Math.max(1, cols - f) : cols;
+      const x0 = x - (n * step + t) / 2;
       const m = o.mats?.[f] ?? o.m ?? 'bois';
       cells.push(Array.from({ length: n }, (_, i) => ({ x: x0 + i * step + w / 2, y: top })));
-      top = this.rooms(x0, top, n, w, h, m, o.ceil ?? m);
+      top = this.rooms(x0, top, n, w, h, m, o.ceil ?? m, t);
     }
-    if (o.roof) this.roof(x, top, Math.min(3, cols * step * 0.6), o.roof, 1.1);
+    if (o.crenels) top = this.crenels(x, top, n * step + t, o.crenels);
+    else if (o.roof) top = this.roof(x, top, Math.min(3, n * step * 0.6), o.roof, 1.1);
     const cell = (c: number, f: number) => {
       const row = cells[f];
       if (!row?.[c]) throw new Error(`Case ${c},${f} hors de la forteresse`);
@@ -214,6 +241,11 @@ export class Build {
   plateau(x0: number, x1: number, top: number, bottom?: number): number {
     this.ground.push({ x0, x1, top, bottom });
     return top;
+  }
+
+  /** Îlot de terre flottant, de x0 à x1, dessus en `top`, épais de `depth`. */
+  island(x0: number, x1: number, top: number, depth = 1.2): number {
+    return this.plateau(x0, x1, top, top - depth);
   }
 
   cage(x: number, y: number, friend: string): this {
