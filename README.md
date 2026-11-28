@@ -96,6 +96,10 @@ puis agrandi (`SCALE` dans `src/sim/constants.ts`) : structures et relous sont g
   ou de la gauche sans traverser la terre ni un objet incassable (pneus). Jamais de relou enfermé
   dans le relief ou dans de l'incassable ; un abri sous roche est ouvert côté canon. Vérifié par
   `npm test` (« chaque relou est atteignable ») ; `npm run solve` vérifie qu'un joueur gagne.
+- **Du relief partout** : à part le 1-1, le sol plat est l'exception. Chaque niveau a des montées
+  (`terraces` : paliers et pentes), des pics ou des buttes, et au moins un îlot flottant ; des
+  rampes (`ramp`) et des arches relient le sol aux rochers. Vérifié par `npm test` : sous la
+  structure, au plus 35 % de sol plat sans terre au-dessus, et au moins un îlot.
 - **Pas de victoire en un tir garantie** : les relous sont répartis sur plusieurs ensembles (une butte,
   un îlot, le pied d'une tour, un pont), séparés par du relief.
 - **Un passage pour un pouvoir, sans l'imposer** : une **cheminée** ou un creux entre deux pics
@@ -174,7 +178,7 @@ tests/                   niveaux bien construits ; solveur (tests/solve/)
 Dans le fichier de son monde (`src/levels/<monde>.ts`), une fonction construit le niveau avec `Build`, module par module : blocs,
 poutres et poteaux épais, ronds, toits, cadres creux, créneaux, pièces, forteresses (`fort`, avec des
 cases pour loger les relous), murs, pyramides, dominos, relief (`relief`), plateformes et îlots
-flottants (`island`), rochers (`rock`, `peak`, `ledge`, `tunnel`), et surtout des modules variés
+flottants (`island`), rochers (`rock`, `peak`, `ledge`, `tunnel`, `terraces`, `ramp`), et surtout des modules variés
 tirés d'une graine propre au niveau (`new Build(graine)`) : `tower` (étages à une ou plusieurs pièces,
 bric-à-brac, toit au choix), `arch` (pont entre deux appuis de hauteurs différentes), `clutter`
 (objets en vrac), `beam` et `brace` (poutres en biais). `pieces.ts` garde trois morceaux pensés

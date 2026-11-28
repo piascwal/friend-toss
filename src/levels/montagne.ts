@@ -10,6 +10,7 @@ function seisme() {
   b.relou('pilier', 17.2, 0);
   const c = b.tower(21.6, b.peak(21.6, 6.8, 3.8, 2.4), 2, { mats: ['pierre', 'glace'], roof: 'creneaux' });
   b.in('habitue', c.cell(0), 2).in('habitue', c.cell(1), 3);
+  b.clutter(25.6, 29.4, b.island(25.2, 29.8, 7.4), ['pierre']);
   return b.level({
     id: '3-1',
     name: 'Séisme',
@@ -23,11 +24,12 @@ function avalanche() {
   const cliff = b.ledge(9.6, 17, 5);
   b.ball(12.5, cliff, 'pierre', 1.3);
   b.ball(15, cliff, 'pierre', 1.3);
-  const f = b.tower(22, 0, 1, { rooms: 2, w: 2.6, mats: ['glace'], roof: 'rien' });
+  const [t] = b.terraces(19.4, [[6.6, 0.8]]);
+  const f = b.tower(t.mid, t.y, 1, { rooms: 2, w: 2.6, mats: ['glace'], roof: 'rien' });
   b.in('habitue', f.cell(0, 0)).in('gardien', f.cell(0, 1));
-  b.clutter(20, 24, f.top, ['glace', 'pierre']);
-  const top = b.island(25.6, 31.4, 4.2);
-  b.in('habitue', b.tower(28.5, top, 1, { mats: ['glace'], roof: 'cadre' }).cell(0), 2);
+  b.clutter(t.mid - 2, t.mid + 2, f.top, ['glace', 'pierre']);
+  const top = b.island(27.6, 33.4, 4.6);
+  b.in('habitue', b.tower(30.5, top, 1, { mats: ['glace'], roof: 'cadre' }).cell(0), 2);
   return b.level({
     id: '3-2',
     name: 'Avalanche',
@@ -48,6 +50,7 @@ function leRefuge() {
   const q = b.arch(25.6, k.top, 29.8, r.top, Math.max(k.top, r.top) + 1, ['pierre', 'glace']);
   b.crenels(22.3, p.top, 3.4, 'pierre');
   b.relou('habitue', 27.7, q.top, 4);
+  b.clutter(10.4, 13.2, b.island(10, 13.6, 7.8), ['pierre', 'glace']);
   return b.level({
     id: '3-3',
     name: 'Le refuge',
@@ -65,7 +68,7 @@ function laGrotte() {
   b.in('habitue', t.cell(0, 1), 2);
   b.ball(13.6, roof, 'pierre', 1.1);
   b.add('menhir', 24.6, roof);
-  b.cage(28.5, 0, 'roulie');
+  b.cage(29.4, b.island(27.4, 31.4, 4.8), 'roulie');
   return b.level({
     id: '3-4',
     name: 'La grotte',
@@ -76,8 +79,9 @@ function laGrotte() {
 
 function givre() {
   const b = new Build(305);
-  b.pillar(12.5, 0, 3, 'metal', 0.6);
-  const f = b.tower(18, 0, 2, {
+  const [t] = b.terraces(10.5, [[11, 1.4]]);
+  b.pillar(t.a + 0.3, t.y, 3, 'metal', 0.6);
+  const f = b.tower(t.b - 3, t.y, 2, {
     rooms: 2,
     w: 3,
     h: 2,
@@ -86,8 +90,8 @@ function givre() {
     roof: 'creneaux',
   });
   b.in('pilier', f.cell(0, 0)).in('gardien', f.cell(0, 1)).in('habitue', f.cell(1, 0));
-  const top = b.island(23.4, 28.2, 4.6);
-  b.in('habitue', b.tower(25.8, top, 1, { mats: ['pierre', 'metal'], roof: 'toit' }).cell(0), 2);
+  const top = b.island(t.b + 1.6, t.b + 6.4, 5);
+  b.in('habitue', b.tower(t.b + 4, top, 1, { mats: ['pierre', 'metal'], roof: 'toit' }).cell(0), 2);
   return b.level({
     id: '3-5',
     name: 'Givre',
@@ -106,6 +110,7 @@ function leCol() {
   b.crenels(17.4, p.top, 3, 'glace');
   b.crenels(25.6, p.top, 3, 'glace');
   b.relou('pilier', 21.4, 0);
+  b.clutter(35.4, 39.2, b.island(35, 39.6, 6.4), ['pierre', 'glace']);
   return b.level({
     id: '3-6',
     name: 'Le col',
@@ -143,8 +148,14 @@ function lesMenhirs() {
   b.relou('habitue', 15.5, 4);
   const t = b.tower(19.6, 2.2, 2, { w: 2.8, mats: ['glace'], roof: 'toit' });
   b.in('gardien', t.cell(0)).in('habitue', t.cell(1), 2);
-  const f = b.tower(28, 0, 1, { rooms: 2, w: 2.8, mats: ['pierre'], roof: 'creneaux' });
+  const f = b.tower(28.6, b.peak(28.6, 9.4, 6.4, 1.2), 1, {
+    rooms: 2,
+    w: 2.8,
+    mats: ['pierre'],
+    roof: 'creneaux',
+  });
   b.in('habitue', f.cell(0, 0), 3).in('gardien', f.cell(0, 1));
+  b.clutter(24.6, 27.6, b.island(24.2, 28, 8.2), ['pierre']);
   return b.level({
     id: '3-8',
     name: 'Les dominos',
@@ -157,12 +168,16 @@ function leBarrage() {
   const b = new Build(309);
   const base = b.ledge(10.8, 14.2, 1);
   b.wall(11.5, base, 2, 4, 'pierre');
-  b.relou('pilier', 16.3, 0);
-  b.wall(18, 0, 1, 3, 'glace');
-  b.relou('habitue', 19.8, 0);
-  const f = b.tower(24.5, 0, 2, { rooms: [2, 1], w: 2.8, mats: ['glace', 'pierre'], roof: 'toit' });
+  b.relou('pilier', 16.2, 0);
+  const [t1, t2] = b.terraces(17.6, [
+    [4, 0.8],
+    [8, 1.8],
+  ]);
+  b.wall(t1.a, t1.y, 1, 3, 'glace');
+  b.relou('habitue', t1.a + 1.9, t1.y);
+  const f = b.tower(t2.mid, t2.y, 2, { rooms: [2, 1], w: 2.8, mats: ['glace', 'pierre'], roof: 'toit' });
   b.in('habitue', f.cell(0, 0), 2).in('gardien', f.cell(0, 1)).in('habitue', f.cell(1), 3);
-  b.add('tonneau-or', 29, 0);
+  b.add('tonneau-or', t2.b + 3.6, b.island(t2.b + 1.6, t2.b + 5.6, 5.2));
   return b.level({
     id: '3-9',
     name: 'Le barrage',
@@ -185,40 +200,50 @@ function leSommet() {
   const f = b.tower(23.5, 6.2, 2, { rooms: 2, w: 2.8, mats: ['pierre', 'glace'], roof: 'creneaux' });
   b.in('pilier', f.cell(0, 0)).in('habitue', f.cell(0, 1), 2).in('habitue', f.cell(1, 1), 3);
   b.in('gardien', chimney(b, 30.4, 6.2, 3, 'pierre', 1.4));
+  b.clutter(36.4, 40.6, b.island(36, 41, 8.4), ['pierre', 'glace']);
   return b.level({ id: '3-10', name: 'Le sommet', friends: ['roulie', 'jbg', 'lolo', 'tom', 'mat'] });
 }
 
 function laCrevasse() {
   const b = new Build(311);
+  b.terraces(14.6, [[10.2, 0.8]]);
   b.ledge(8.6, 14.4, 4, 0.5);
   b.ledge(24.6, 35, 4, 0.5);
   b.ball(10.6, 4, 'pierre', 1.2);
   b.ball(12.2, 4, 'pierre', 1.1);
-  const f = b.tower(19.5, 0, 1, { rooms: 3, w: 2.8, h: 2, mats: ['pierre'], slab: ['glace'], fill: false });
+  const f = b.tower(19.6, 0.8, 1, { rooms: 3, w: 2.6, h: 2, mats: ['pierre'], slab: ['glace'], fill: false });
   b.in('habitue', f.cell(0, 0)).in('pilier', f.cell(0, 1)).in('habitue', f.cell(0, 2), 2);
-  const p = b.arch(13.6, 4, 25.4, 4, 6.2, ['pierre', 'glace']);
+  const p = b.arch(13.6, 4, 25.4, 4, 6.6, ['pierre', 'glace']);
   b.relou('habitue', 19.5, p.top, 3);
   const c = b.tower(30, 4, 2, { mats: ['glace'], roof: 'creneaux' });
   b.in('gardien', c.cell(0)).in('habitue', c.cell(1), 4);
+  b.clutter(36.4, 40.6, b.island(36, 41, 7.6), ['pierre']);
   return b.level({ id: '3-11', name: 'La crevasse', friends: ['lolo', 'roulie', 'jbm', 'jbg'] });
 }
 
 function yetiAlpha() {
   const b = new Build(312);
-  const l = b.tower(15.5, 0, 3, { w: 2.6, mats: ['pierre', 'glace'], roof: 'creneaux' });
+  const [t] = b.terraces(11.5, [[5.5, 1.4]]);
+  const l = b.tower(t.mid, t.y, 3, { w: 2.6, mats: ['pierre', 'glace'], roof: 'creneaux' });
   b.in('gardien', l.cell(0)).in('habitue', l.cell(2));
-  const top = b.ledge(19.6, 34.4, 1, 0.5);
-  b.relou('yeti-alpha', 27, top);
-  b.pillar(23.6, top, 3.8, 'pierre', 0.7);
-  b.pillar(30.4, top, 3.8, 'pierre', 0.7);
-  const roof = b.plank(27, top + 3.8, 8, 'pierre', 0.6);
-  b.ball(24.8, roof, 'pierre', 1.2);
-  b.ball(29.2, roof, 'pierre', 1.2);
-  b.roof(27, roof, 2.2, 'pierre', 1.1);
-  b.relou('habitue', 21.5, top, 2);
-  const s = b.tower(38.5, 0, 2, { w: 3.2, h: 2, mats: ['glace', 'pierre'], fill: false, roof: 'toit' });
+  const top = b.ledge(20.6, 35.4, 1, 0.5);
+  b.relou('yeti-alpha', 28, top);
+  b.pillar(24.6, top, 3.8, 'pierre', 0.7);
+  b.pillar(31.4, top, 3.8, 'pierre', 0.7);
+  const roof = b.plank(28, top + 3.8, 8, 'pierre', 0.6);
+  b.ball(25.8, roof, 'pierre', 1.2);
+  b.ball(30.2, roof, 'pierre', 1.2);
+  b.roof(28, roof, 2.2, 'pierre', 1.1);
+  b.relou('habitue', 22.5, top, 2);
+  const s = b.tower(39.4, b.peak(39.4, 6.6, 4.2, 1.4), 2, {
+    w: 3.2,
+    h: 2,
+    mats: ['glace', 'pierre'],
+    fill: false,
+    roof: 'toit',
+  });
   b.in('pilier', s.cell(0)).in('habitue', s.cell(1), 3);
-  b.cage(42.5, 0, 'soso');
+  b.cage(44.4, b.island(42.4, 46.4, 5.6), 'soso');
   return b.level({
     id: '3-12',
     name: 'BOSS : Yéti Alpha',

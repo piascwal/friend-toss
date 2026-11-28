@@ -8,10 +8,12 @@ function caVaPeter() {
   const t = b.tower(14, b.ledge(10.8, 17.2, 1.2), 2, { rooms: [2, 1], roof: 'rien' });
   b.in('habitue', t.cell(0, 0)).put('baril', t.cell(0, 1)).in('habitue', t.cell(1, 0), 2);
   b.add('baril', 14, t.top);
-  const r = b.tower(21.5, 0, 1, { roof: 'toit' });
+  const [g] = b.terraces(18.4, [[9.5, 0.9]]);
+  const r = b.tower(g.a + 1.9, g.y, 1, { roof: 'toit' });
   b.in('habitue', r.cell(0), 3);
-  b.add('baril', 23.6, 0);
-  b.clutter(24.4, 27, 0, ['bois', 'glace']);
+  b.add('baril', g.a + 4.2, g.y);
+  b.clutter(g.a + 5, g.b, g.y, ['bois', 'glace']);
+  b.clutter(g.a + 0.6, g.a + 3.4, b.island(g.a + 0.2, g.a + 3.8, 7.6), ['bois']);
   return b.level({
     id: '2-1',
     name: 'Ça va péter',
@@ -38,11 +40,11 @@ function barAGlacons() {
 
 function paumeDeSouffle() {
   const b = new Build(203);
-  const t = b.tower(16, 0, 2, { rooms: 2, mats: ['glace', 'bois'], roof: 'creneaux' });
+  const [g] = b.terraces(11, [[9.5, 1]]);
+  const t = b.tower(g.mid, g.y, 2, { rooms: 2, w: 2.8, mats: ['glace', 'bois'], roof: 'creneaux' });
   b.in('habitue', t.cell(0, 0)).in('gardien', t.cell(0, 1)).in('habitue', t.cell(1, 1), 2);
-  b.clutter(19.4, 21.5, 0, ['glace']);
-  const top = b.island(22, 27, 4.2);
-  b.in('habitue', b.tower(24.5, top, 1, { mats: ['glace'], roof: 'boule' }).cell(0), 3);
+  const top = b.island(23.6, 28.6, 4.6);
+  b.in('habitue', b.tower(26.1, top, 1, { mats: ['glace'], roof: 'boule' }).cell(0), 3);
   return b.level({
     id: '2-3',
     name: 'Le pogo',
@@ -62,7 +64,7 @@ function laScene() {
   b.clutter(18, 20, truss.top, ['metal', 'bois']);
   const c = b.tower(19, stage, 1, { rooms: 2, w: 2.8, mats: ['glace', 'bois'], roof: 'toit' });
   b.in('gardien', c.cell(0, 0)).in('habitue', c.cell(0, 1), 3);
-  b.cage(29.5, 0, 'jbg');
+  b.cage(30.6, b.island(28.6, 32.6, 6.4), 'jbg');
   return b.level({ id: '2-4', name: 'La scène', friends: ['jbm', 'tom', 'mat', 'roulian'] });
 }
 
@@ -71,8 +73,10 @@ function bouleDeFeu() {
   const top = b.tunnel(11.5, 19, 3.2);
   b.relou('habitue', 15, 0).add('baril', 16.4, 0);
   b.in('habitue', b.tower(15.2, top, 1, { mats: ['metal', 'glace'], roof: 'toit' }).cell(0), 2);
-  const r = b.tower(23.5, 0, 2, { mats: ['metal'], slab: ['metal', 'bois'], roof: 'creneaux' });
+  const [g] = b.terraces(20.4, [[6.5, 1.4]]);
+  const r = b.tower(g.mid, g.y, 2, { mats: ['metal'], slab: ['metal', 'bois'], roof: 'creneaux' });
   b.in('gardien', r.cell(0)).in('habitue', r.cell(1), 3);
+  b.clutter(g.b + 2, g.b + 5.6, b.island(g.b + 1.6, g.b + 6, 6.4), ['metal', 'bois']);
   return b.level({
     id: '2-5',
     name: 'Boule de feu',
@@ -83,8 +87,9 @@ function bouleDeFeu() {
 
 function carreVip() {
   const b = new Build(206);
-  b.stack(11.6, 0, ['enceinte', 'enceinte-rose']);
-  b.stack(12.6, 0, ['enceinte']);
+  const [g] = b.terraces(9.2, [[3.8, 0.8]]);
+  b.stack(g.mid - 0.5, g.y, ['enceinte', 'enceinte-rose']);
+  b.stack(g.mid + 0.5, g.y, ['enceinte']);
   const top = b.ledge(15, 25, 1.5);
   const v = b.tower(20, top, 1, {
     rooms: 3,
@@ -97,7 +102,7 @@ function carreVip() {
   b.in('gardien', v.cell(0, 0)).put('caisson', v.cell(0, 1)).in('gardien', v.cell(0, 2), 2);
   const u = b.tower(20, v.top, 1, { rooms: 2, w: 2.8, mats: ['glace'], roof: 'creneaux' });
   b.in('habitue', u.cell(0, 0)).in('habitue', u.cell(0, 1), 2);
-  b.clutter(26, 29, 0, ['glace', 'metal']);
+  b.clutter(26.9, 30.6, b.island(26.5, 31, 6.6), ['glace', 'metal']);
   return b.level({
     id: '2-6',
     name: 'Le carré VIP',
@@ -138,6 +143,7 @@ function lesGradins() {
   b.relou('gardien', 18.1, 2.4);
   b.wall(20.4, 3.6, 1, 2, 'bois', 0.8);
   b.relou('habitue', 22.6, 3.6, 2);
+  b.clutter(36, 39.6, b.island(35.6, 40, 8.4), ['glace', 'bois']);
   const f = b.tower(29.5, 4.8, 2, { rooms: [2, 1], w: 2.8, mats: ['bois', 'glace'], roof: 'toit' });
   b.in('habitue', f.cell(0, 0), 3).in('gardien', f.cell(0, 1)).in('habitue', f.cell(1), 4);
   return b.level({
@@ -150,12 +156,15 @@ function lesGradins() {
 
 function backstage() {
   const b = new Build(209);
-  const l = b.tower(13.2, 0, 2, { roof: 'toit' });
+  const [g] = b.terraces(10, [[5.6, 1]]);
+  const l = b.tower(g.mid - 0.2, g.y, 2, { w: 2.6, roof: 'toit' });
   b.in('habitue', l.cell(0)).in('habitue', l.cell(1), 2);
-  b.add('tnt', 16, 0);
-  b.in('gardien', chimney(b, 19, 0, 3.2, 'metal'));
-  b.add('tnt', 22, 0);
+  b.add('tnt', g.b - 0.2, g.y);
+  b.add('tnt', 18.9, 0);
+  b.in('gardien', chimney(b, 20.9, 0, 3.2, 'metal', 1.4));
+  b.clutter(30.8, 34.6, b.island(30.4, 35, 6.4), ['metal', 'glace']);
   const r = b.tower(26.4, b.ledge(23.6, 29.2, 1.5), 2, { mats: ['glace', 'bois'], roof: 'creneaux' });
+  b.add('tnt', 24.2, 1.5);
   b.in('habitue', r.cell(0), 3).in('habitue', r.cell(1), 4);
   return b.level({
     id: '2-9',
@@ -167,8 +176,12 @@ function backstage() {
 
 function pilierAuBar() {
   const b = new Build(210);
-  b.stack(11.5, 0, ['enceinte', 'enceinte-rose']);
-  const bar = b.tower(19, 0, 1, {
+  const [g1, g2] = b.terraces(8.6, [
+    [4, 0.8],
+    [12, 1.6],
+  ]);
+  b.stack(g1.mid, g1.y, ['enceinte', 'enceinte-rose']);
+  const bar = b.tower(g2.mid, g2.y, 1, {
     rooms: 3,
     w: 3,
     h: 2,
@@ -178,7 +191,8 @@ function pilierAuBar() {
     fill: false,
   });
   b.in('habitue', bar.cell(0, 0)).in('pilier', bar.cell(0, 1)).in('habitue', bar.cell(0, 2), 2);
-  const s = b.tower(19, bar.top, 2, { rooms: 2, w: 2.6, mats: ['bois'], roof: 'creneaux' });
+  const s = b.tower(g2.mid, bar.top, 2, { rooms: 2, w: 2.6, mats: ['bois'], roof: 'creneaux' });
+  b.clutter(g2.b + 2, g2.b + 5.6, b.island(g2.b + 1.6, g2.b + 6, 6.8), ['bois', 'metal']);
   b.put('baril', s.cell(0, 0)).in('gardien', s.cell(0, 1)).in('habitue', s.cell(1, 0), 3);
   return b.level({ id: '2-10', name: 'Le pilier du bar', friends: ['jbm', 'jbg', 'tom', 'mat'] });
 }
@@ -199,7 +213,8 @@ function toursDeSon() {
 
 function djBoucle() {
   const b = new Build(212);
-  const g = b.tower(12, 0, 1, { rooms: 2, w: 2.8, mats: ['glace'], roof: 'cadre' });
+  const [t] = b.terraces(8.4, [[6.4, 1]]);
+  const g = b.tower(t.mid, t.y, 1, { rooms: 2, w: 2.6, mats: ['glace'], roof: 'cadre' });
   b.in('habitue', g.cell(0, 0), 3).in('habitue', g.cell(0, 1));
   const stage = b.ledge(16, 32, 1.2, 0.5);
   b.relou('dj', 24, stage);
@@ -208,7 +223,7 @@ function djBoucle() {
   b.in('habitue', l.cell(1)).in('gardien', r.cell(0)).in('habitue', r.cell(1), 2);
   const p = b.arch(18.8, l.top, 29.2, r.top, Math.max(l.top, r.top) + 0.8, ['metal']);
   b.add('baril', 22.2, p.top).add('tnt', 24, p.top).add('baril', 25.8, p.top);
-  b.cage(35, 0, 'lolo');
+  b.cage(36, b.island(34, 38, 6), 'lolo');
   return b.level({
     id: '2-12',
     name: 'BOSS : DJ Boucle',

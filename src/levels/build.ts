@@ -34,6 +34,14 @@ export interface Fort {
   cells: { x: number; y: number }[][];
 }
 
+/** Palier d'un relief en terrasses : partie plate de `a` à `b`, à la hauteur `y`. */
+export interface Flat {
+  a: number;
+  b: number;
+  y: number;
+  mid: number;
+}
+
 export interface Storey {
   top: number;
   cell: { x: number; y: number };
@@ -125,6 +133,51 @@ export class Build {
   relief(points: [number, number][]): this {
     this.land = points;
     return this;
+  }
+
+  /**
+   * Relief en terrasses à partir de x0 : une suite de paliers [longueur, hauteur] reliés par des pentes,
+   * puis retour au sol plat (la place où tombent les débris). Renvoie chaque palier avec sa partie
+   * vraiment plate (`a` à `b`, hors arrondis) et son milieu, pour y poser les structures.
+   */
+  terraces<const S extends readonly (readonly [number, number])[]>(
+    x0: number,
+    steps: S,
+  ): { [K in keyof S]: Flat } {
+    const pts: [number, number][] = [
+      [-10, 0],
+      [x0, 0],
+    ];
+    const flats: Flat[] = [];
+    let x = x0;
+    let y = 0;
+    const runOf = (dy: number) => Math.max(1.2, Math.abs(dy) * 0.75);
+    const margin = (dy: number) => Math.min(1.5, Math.hypot(runOf(dy), dy) / 2) + 0.1;
+    steps.forEach(([len, h], i) => {
+      x += runOf(h - y);
+      pts.push([x, h]);
+      const next = i + 1 < steps.length ? steps[i + 1]![1] : 0;
+      const a = x + margin(h - y);
+      const b = x + len - margin(next - h);
+      flats.push({ a, b, y: h, mid: (a + b) / 2 });
+      x += len;
+      pts.push([x, h]);
+      y = h;
+    });
+    pts.push([x + runOf(y), 0], [x + 80, 0]);
+    this.relief(pts);
+    return flats as { [K in keyof S]: Flat };
+  }
+
+  /**
+   * Rampe : une poutre penchée qui part du sol (ou d'un palier) en `xg` et vient s'appuyer sur le
+   * coin d'un rocher ou d'un îlot, en (xr, yr). Elle relie la structure au relief.
+   */
+  ramp(xg: number, xr: number, yr: number, m: M = 'bois', th = 0.35): this {
+    const up = xr > xg;
+    return up
+      ? this.beam(xg, this.groundAt(xg), xr + 0.25, yr + 0.05, m, th)
+      : this.beam(xr - 0.25, yr + 0.05, xg, this.groundAt(xg), m, th);
   }
 
   /** Hauteur du sol (relief non arrondi) en x. */

@@ -5,6 +5,7 @@ import { ALL_LEVELS, UNLOCKS, STARTERS } from '../src/levels';
 import { FRIENDS, FRIEND_BY_ID } from '../src/sim/defs';
 import { createSim } from '../src/sim/sim';
 import { unreachable } from './reach';
+import { flatShare, hasIsland } from './relief';
 
 describe('niveaux', () => {
   for (const level of ALL_LEVELS) {
@@ -26,6 +27,15 @@ describe('niveaux', () => {
     it(`${level.id} : chaque relou est atteignable`, () => {
       expect(unreachable(level)).toEqual([]);
     });
+
+    // le tout premier niveau reste sur du plat ; tous les autres vivent sur du relief, avec un îlot
+    if (level.id !== '1-1')
+      it(`${level.id} : relief (peu de plat, au moins un îlot)`, () => {
+        expect({ plat: flatShare(level) <= 0.35, ilot: hasIsland(level) }).toEqual({
+          plat: true,
+          ilot: true,
+        });
+      });
 
     it(`${level.id} : tient debout sans tir`, () => {
       const sim = createSim(level);
