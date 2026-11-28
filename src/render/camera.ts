@@ -41,7 +41,8 @@ export class Camera {
       x1 = Math.max(x1, p.x + Math.max(e.w, e.h) / 2);
       y1 = Math.max(y1, p.y + e.h / 2);
     }
-    this.bounds = { x0: -6.5, x1: x1 + 2.5, y1: y1 + 2 };
+    for (const r of sim.level.rocks ?? []) for (const [, y] of r) y1 = Math.max(y1, y);
+    this.bounds = { x0: -6.5, x1: x1 + 1.5, y1: y1 + 2 };
     this.jump(this.aimFrame(sim));
   }
 
@@ -156,10 +157,13 @@ export class Camera {
     return { x: this.bounds.x0, s: Math.max(this.view.W / need, this.fitAll()) };
   }
 
-  /** Structure : son bord droit, assez haut pour tout voir. */
+  /**
+   * Structure : son bord droit au bord droit de l'écran, assez haut pour tout voir. Si la hauteur oblige
+   * à reculer, on montre ce qu'il y a à gauche (le canon), jamais du vide à droite de la structure.
+   */
   private structureFrame(s0: number): Frame {
     const s = Math.max(this.fitAll(), Math.min(s0, this.availH() / this.bounds.y1));
-    return { x: Math.max(this.bounds.x0, this.bounds.x1 + 1 - this.view.W / s), s };
+    return { x: Math.max(this.bounds.x0 - 12, this.bounds.x1 - 1 - this.view.W / s), s };
   }
 
   /** Suivi d'un ami en vol : il reste au tiers gauche, et la vue s'élargit s'il monte haut. */

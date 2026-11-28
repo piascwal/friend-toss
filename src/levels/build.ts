@@ -1,7 +1,8 @@
 /* Outil pour écrire les niveaux : on pose des modules (blocs, poutres, pièces, forteresses…) en mètres.
    Le canon est en x = -2 (les positions sont décalées de 2 m à la sortie), le sol plat en y = 0,
    et y est toujours le bas de la pièce posée. */
-import type { EnemyKind, ObjKind } from '../sim/defs';
+import { OBJECTS, type EnemyKind, type ObjDef, type ObjKind } from '../sim/defs';
+import { SCALE } from '../sim/constants';
 import type { EnemyPlace, Ground, ItemDef, LevelDef } from '../sim/level';
 
 /** Épaisseur des poutres et poteaux (m) : des modules bien épais, façon jeu de construction. */
@@ -31,6 +32,35 @@ export interface Fort {
   top: number;
   cell: (col: number, floor: number) => { x: number; y: number };
   cells: { x: number; y: number }[][];
+}
+
+export interface Storey {
+  top: number;
+  cell: { x: number; y: number };
+  /** Une case par pièce (étage à plusieurs pièces). */
+  cells?: { x: number; y: number }[];
+}
+
+export interface TowerOptions {
+  /** Matériaux mêlés des poteaux (et des dalles, sauf `slab`). */
+  mats?: M[];
+  slab?: M[];
+  w?: number;
+  h?: number;
+  /** Rétrécit chaque étage de tant de mètres. */
+  shrink?: number;
+  /** Pièces côte à côte par étage (une liste : une valeur par étage, la dernière vaut pour la suite). */
+  rooms?: number | number[];
+  /** Bric-à-brac dans les pièces (oui par défaut ; non pour loger un pilier). */
+  fill?: boolean;
+  roof?: 'toit' | 'boule' | 'creneaux' | 'cadre' | 'rien';
+}
+
+export interface Tower {
+  top: number;
+  cells: { x: number; y: number }[];
+  /** Case d'un étage (et de sa pièce `room`, de gauche à droite). */
+  cell: (floor: number, room?: number) => { x: number; y: number };
 }
 
 /** Matériau d'un module. */
@@ -70,6 +100,23 @@ export class Build {
   enemies: EnemyPlace[] = [];
   ground: Ground[] = [];
   land: [number, number][] = [];
+  rocks: [number, number][][] = [];
+  /** Hasard reproductible : chaque niveau a sa graine, pour des structures variées mais fixes. */
+  private seed: number;
+
+  constructor(seed = 1) {
+    this.seed = seed >>> 0 || 1;
+  }
+
+  /** Nombre entre a et b (hasard reproductible). */
+  rand(a = 0, b = 1): number {
+    this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+    return a + (this.seed / 4294967296) * (b - a);
+  }
+
+  pick<T>(list: T[]): T {
+    return list[Math.floor(this.rand(0, list.length))]!;
+  }
 
   /**
    * Relief : une suite de points (x, y) de la surface du sol, de gauche à droite.
@@ -164,13 +211,6 @@ export class Build {
     return this.plank(x0 + len / 2, y + h, len + 0.3, ceil, t);
   }
 
-  /** Tour de plusieurs étages de pièces. */
-  tower(x: number, y: number, floors: number, w: number, h: number, m: M = 'bois', ceil: M = m): number {
-    let top = y;
-    for (let i = 0; i < floors; i++) top = this.room(x, top, w, h, m, ceil);
-    return top;
-  }
-
   /**
    * Forteresse : `floors` étages de `cols` pièces côte à côte (poteaux partagés), en pyramide si
    * `taper` (une pièce de moins par étage). Renvoie le haut et les cases (centre, bas) pour y loger
@@ -244,8 +284,237 @@ export class Build {
   }
 
   /** Îlot de terre flottant, de x0 à x1, dessus en `top`, épais de `depth`. */
-  island(x0: number, x1: number, top: number, depth = 1.2): number {
-    return this.plateau(x0, x1, top, top - depth);
+  /* ------------------------------------------------------------ rochers de terre */
+
+  /** Rocher de forme libre (polygone fermé). */
+  rock(points: [number, number][]): this {
+    this.rocks.push(points);
+    return this;
+  }
+
+  /**
+   * Îlot flottant façon motte de terre : dessus plat de x0 à x1, dessous effilé et irrégulier.
+   * Renvoie le haut.
+   */
+  island(x0: number, x1: number, top: number, depth = 1.6): number {
+    const w = x1 - x0;
+    const m = x0 + w * this.rand(0.4, 0.6);
+    this.rock([
+      [x0, top],
+      [x1, top],
+      [x1 - 0.15, top - depth * 0.45],
+      [m + w * 0.18, top - depth * this.rand(0.8, 1)],
+      [m - w * 0.12, top - depth],
+      [x0 + 0.2, top - depth * 0.5],
+    ]);
+    return top;
+  }
+
+  /** Pic de terre (trapèze) posé au sol : base de `base` m, dessus plat de `flat` m, haut `h`. */
+  peak(x: number, base: number, flat: number, h: number, y = 0): number {
+    this.rock([
+      [x - base / 2, y - 0.6],
+      [x + base / 2, y - 0.6],
+      [x + flat / 2, y + h],
+      [x - flat / 2, y + h],
+    ]);
+    return y + h;
+  }
+
+  /** Butte à flancs raides (falaise) de x0 à x1, dessus à `top`. */
+  ledge(x0: number, x1: number, top: number, slope = 0.8): number {
+    this.rock([
+      [x0 - slope, -0.6],
+      [x1 + slope, -0.6],
+      [x1, top],
+      [x0, top],
+    ]);
+    return top;
+  }
+
+  /**
+   * Abri sous roche : un surplomb de terre de x0 à x1, haut de `top`, posé sur un pied de terre à
+   * droite (large de `t`) et ouvert à gauche, côté canon, sur `h` m de haut. On n'y tire qu'à plat
+   * (INDIANNE, une boule de feu, un tir tendu) ou en faisant tomber ce qui est posé dessus.
+   */
+  tunnel(x0: number, x1: number, top: number, h = 2.4, t = 1.4): number {
+    this.rock([
+      [x0, h],
+      [x1 - t, h],
+      [x1 - t, -0.6],
+      [x1 + 0.6, -0.6],
+      [x1, top],
+      [x0, top],
+    ]);
+    return top;
+  }
+
+  /* ------------------------------------------------------------ modules variés */
+
+  /** Poutre en biais posée de (x0, y0) à (x1, y1) : son dessous touche ces deux points. */
+  beam(x0: number, y0: number, x1: number, y1: number, m: M = 'bois', th = 0.35): this {
+    const a = (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI;
+    this.items.push({
+      k: BOX[m],
+      x: (x0 + x1) / 2,
+      y: (y0 + y1) / 2,
+      w: Math.hypot(x1 - x0, y1 - y0),
+      h: th,
+      a,
+    });
+    return this;
+  }
+
+  /**
+   * Poteau fait de morceaux : un tronçon principal, parfois coiffé d'une cale d'un autre matériau ou
+   * monté en cadres creux. Toujours `h` de haut au total, pour que les plafonds restent droits.
+   */
+  column(x: number, y: number, h: number, w: number, mats: M[]): number {
+    const kind = this.rand();
+    if (kind < 0.18 && h > 1.2) {
+      // pile de cadres creux carrés
+      const n = Math.max(2, Math.round(h / Math.max(0.6, w + 0.25)));
+      for (let i = 0; i < n; i++) this.frame(x, y + (i * h) / n, this.pick(mats), h / n);
+    } else if (kind < 0.55 && h > 1) {
+      // tronçon et cale (un peu plus fine ou plus large : pas tout à fait aligné, mais stable)
+      const cap = this.rand(0.5, 0.8);
+      this.block(x, y, this.pick(mats), w, h - cap);
+      this.block(x, y + h - cap, this.pick(mats), w * this.rand(0.85, 1), cap);
+    } else this.block(x, y, this.pick(mats), w, h);
+    return y + h;
+  }
+
+  /**
+   * Étage : deux poteaux composés et une dalle d'épaisseur et de débord variables.
+   * Renvoie le haut et la case (centre, bas) entre les poteaux.
+   */
+  storey(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    mats: M[],
+    slab: M[] = mats,
+    fill = true,
+    rooms = 1,
+  ): Storey {
+    const pw = this.rand(0.4, 0.65);
+    const all = rooms * w - (rooms - 1) * pw;
+    const x0 = x - all / 2;
+    for (let i = 0; i <= rooms; i++) this.column(x0 + pw / 2 + i * (w - pw), y, h, pw, mats);
+    const th = this.pick([0.35, 0.45, 0.55, 0.65]);
+    const top = this.block(x, y + h, this.pick(slab), all + this.rand(0, 0.7), th);
+    const cells = Array.from({ length: rooms }, (_, i) => {
+      const cx = x0 + w / 2 + i * (w - pw);
+      // bric-à-brac d'un côté de la pièce, le relou de l'autre
+      const inner = w - 2 * pw;
+      const jw = Math.min(0.8, inner - 1.45);
+      if (!fill || jw < 0.45) return { x: cx, y };
+      const jx = this.rand() < 0.5 ? -1 : 1;
+      this.junk(cx + jx * (inner / 2 - jw / 2 - 0.04), y, jw, h - 0.12, mats);
+      return { x: cx - jx * (jw / 2 + 0.04), y };
+    });
+    return { top, cell: cells[0]!, cells };
+  }
+
+  /** Petite pile de bric-à-brac (blocs, cadres) de `w` de large, sous un plafond à `h`. */
+  junk(x: number, y: number, w: number, h: number, mats: M[]): number {
+    let top = y;
+    while (top - y < h - 0.5) {
+      const room = h - (top - y);
+      const k = this.rand();
+      if (k < 0.3 && room > w) top = this.frame(x, top, this.pick(mats), w);
+      else top = this.block(x, top, this.pick(mats), w, Math.min(room, this.rand(0.35, 0.8)));
+      if (this.rand() < 0.35) break;
+    }
+    return top;
+  }
+
+  /**
+   * Objets posés en vrac sur une surface libre de x0 à x1 (dalle, pont, rocher) : petits blocs,
+   * cadres, boules, toits.
+   */
+  clutter(x0: number, x1: number, y: number, mats: M[]): this {
+    let x = x0 + this.rand(0, 0.3);
+    for (;;) {
+      const w = this.rand(0.5, 0.95);
+      if (x + w > x1) break;
+      const k = this.rand();
+      const m = this.pick(mats);
+      if (k < 0.2) this.ball(x + w / 2, y, m === 'glace' ? 'pierre' : m, w);
+      else if (k < 0.4) this.frame(x + w / 2, y, m, w);
+      else if (k < 0.55) this.roof(x + w / 2, y, w + 0.2, m, 0.5);
+      else {
+        const top = this.block(x + w / 2, y, m, w, this.rand(0.4, 0.9));
+        if (this.rand() < 0.4) this.block(x + w / 2, top, this.pick(mats), w * 0.7, 0.4);
+      }
+      x += w + this.rand(0.05, 0.5);
+    }
+    return this;
+  }
+
+  /**
+   * Jambe de force : une poutre en biais calée entre le sol (ou un rocher) et la face d'un poteau,
+   * côté `side` (1 : à droite de la face en `xFace`, -1 : à gauche), qui touche la face à `yTop`.
+   */
+  brace(xFace: number, yTop: number, side: 1 | -1, y0: number, run = 1, m: M = 'bois'): this {
+    if (side === 1) return this.beam(xFace, yTop, xFace + run, y0, m, 0.3);
+    return this.beam(xFace - run, y0, xFace, yTop, m, 0.3);
+  }
+
+  /**
+   * Tour d'étages variés, de plus en plus étroite si `shrink`, coiffée d'un toit, d'une boule, de
+   * créneaux ou d'un cadre (au hasard si `roof` n'est pas donné). Renvoie le haut final et les cases de chaque étage.
+   */
+  tower(x: number, y: number, floors: number, o: TowerOptions = {}): Tower {
+    const mats = o.mats ?? ['bois'];
+    const cells: { x: number; y: number }[] = [];
+    const rooms: { x: number; y: number }[][] = [];
+    let top = y;
+    let w = o.w ?? 3;
+    let n = 1;
+    for (let f = 0; f < floors; f++) {
+      const h = o.h ?? this.pick([1.9, 2, 2.1]);
+      const r = Array.isArray(o.rooms) ? (o.rooms[f] ?? o.rooms.at(-1)!) : (o.rooms ?? 1);
+      n = r;
+      const s = this.storey(x, top, w, h, mats, o.slab ?? mats, o.fill ?? true, r);
+      cells.push(s.cell);
+      rooms.push(s.cells ?? [s.cell]);
+      top = s.top;
+      if (o.shrink) w = Math.max(1.6, w - o.shrink);
+    }
+    w = n * w;
+    const roof = o.roof ?? this.pick(['toit', 'boule', 'creneaux', 'cadre', 'rien'] as const);
+    const m = this.pick(o.slab ?? mats);
+    if (roof === 'toit') top = this.roof(x, top, Math.min(w, 2.4), m, this.rand(0.8, 1.3));
+    else if (roof === 'boule') {
+      // boule calée entre deux cales, pour qu'elle ne roule pas toute seule
+      const d = this.rand(0.7, 1);
+      this.block(x - d / 2 - 0.13, top, m, 0.25, 0.3);
+      this.block(x + d / 2 + 0.13, top, m, 0.25, 0.3);
+      top = this.ball(x, top, m === 'glace' ? 'pierre' : m, d);
+    } else if (roof === 'creneaux') top = this.crenels(x, top, w * 0.85, m, 0.45);
+    else if (roof === 'cadre') top = this.frame(x, top, m, this.rand(0.7, 1));
+    return { top, cells, cell: (f, i = 0) => rooms[f]![i]! };
+  }
+
+  /**
+   * Arche entre deux appuis de hauteurs différentes (sol, rocher, haut de tour) : un poteau composé
+   * de chaque côté jusqu'à `top`, puis une dalle. C'est ainsi qu'un château s'accroche au relief.
+   * Renvoie le haut et la case au sol du côté gauche.
+   */
+  arch(x0: number, y0: number, x1: number, y1: number, top: number, mats: M[], slab: M[] = mats): Storey {
+    const pw = this.rand(0.4, 0.6);
+    this.column(x0, y0, top - y0, pw, mats);
+    this.column(x1, y1, top - y1, pw, mats);
+    const th = this.pick([0.35, 0.45, 0.55]);
+    const end = this.block((x0 + x1) / 2, top, this.pick(slab), x1 - x0 + pw + this.rand(0.1, 0.6), th);
+    return { top: end, cell: { x: (x0 + x1) / 2, y: Math.max(y0, y1) } };
+  }
+
+  /** Dalle de pont posée sur deux appuis, de x0 à x1. */
+  span(x0: number, x1: number, y: number, m: M = 'bois', th = 0.4): number {
+    return this.block((x0 + x1) / 2, y, m, x1 - x0, th);
   }
 
   cage(x: number, y: number, friend: string): this {
@@ -255,14 +524,29 @@ export class Build {
   /** Décalage horizontal de tout le niveau : les positions sont écrites depuis 0 = 2 m devant le canon. */
   static readonly DX = 2;
 
-  level(def: Omit<LevelDef, 'items' | 'enemies' | 'ground'>): LevelDef {
-    const dx = Build.DX;
+  /** Point fixe de l'agrandissement (m) : le début des structures reste à la même distance du canon. */
+  static readonly ORIGIN = 8;
+
+  /** Le niveau prêt à jouer : décalé devant le canon et agrandi de SCALE (voir constants.ts). */
+  level(def: Omit<LevelDef, 'items' | 'enemies' | 'ground' | 'rocks'>): LevelDef {
+    const k = SCALE;
+    const X = (x: number) => Build.ORIGIN + (x - Build.ORIGIN) * k + Build.DX;
+    const pt = ([x, y]: [number, number]): [number, number] => [X(x), y * k];
     return {
       ...def,
-      items: this.items.map((i) => ({ ...i, x: i.x + dx })),
-      enemies: this.enemies.map((e) => ({ ...e, x: e.x + dx })),
-      ground: this.ground.map((g) => ({ ...g, x0: g.x0 + dx, x1: g.x1 + dx })),
-      terrain: this.land.length ? this.land.map(([x, y]) => [x + dx, y] as [number, number]) : undefined,
+      items: this.items.map((i) => {
+        const d = OBJECTS[i.k] as ObjDef;
+        return { ...i, x: X(i.x), y: i.y * k, w: (i.w ?? d.w) * k, h: (i.h ?? d.h) * k };
+      }),
+      enemies: this.enemies.map((e) => ({ ...e, x: X(e.x), y: e.y * k })),
+      ground: this.ground.map((g) => ({
+        x0: X(g.x0),
+        x1: X(g.x1),
+        top: g.top * k,
+        bottom: g.bottom === undefined ? undefined : g.bottom * k,
+      })),
+      rocks: this.rocks.length ? this.rocks.map((r) => r.map(pt)) : undefined,
+      terrain: this.land.length ? this.land.map(pt) : undefined,
     };
   }
 }

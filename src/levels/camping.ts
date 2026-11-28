@@ -1,6 +1,5 @@
 /* Monde 1 — Le Camping : le bois, les pièces sur plusieurs étages, les roues, la TNT, les collines. */
 import { Build } from './build';
-import { bridge, castle, rubble, scaffold, stilts } from './pieces';
 import type { WorldDef } from './index';
 
 function premierTir() {
@@ -16,10 +15,13 @@ function premierTir() {
 }
 
 function deuxEtages() {
-  const b = new Build();
-  const f = b.fort(14, 0, 1, 2, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0)).in('habitue', f.cell(0, 1), 2);
-  b.relou('habitue', 18.5, b.wall(17.5, 0, 2, 2), 3);
+  const b = new Build(102);
+  const a = b.tower(12, b.ledge(10, 14, 1.4), 2, { roof: 'toit' });
+  b.in('habitue', a.cell(0)).in('habitue', a.cell(1), 2);
+  const c = b.tower(18.5, 0, 2, { roof: 'creneaux', mats: ['bois', 'bois', 'pierre'] });
+  b.in('habitue', c.cell(1), 3);
+  b.brace(20, 1.5, 1, 0, 1.1);
+  b.clutter(21.6, 24, 0, ['bois', 'pierre']);
   return b.level({
     id: '1-2',
     name: 'Deux étages',
@@ -29,11 +31,16 @@ function deuxEtages() {
 }
 
 function laCage() {
-  const b = new Build();
-  const f = b.fort(15, 0, 2, 2);
-  b.in('habitue', f.cell(0, 0)).in('habitue', f.cell(1, 0), 2).in('habitue', f.cell(0, 1), 3);
-  b.cage(15, f.top, 'mat');
-  b.stack(19.5, 0, ['tonneau', 'tonneau']);
+  const b = new Build(103);
+  const t = b.tower(13, 0, 2, { roof: 'rien' });
+  b.in('habitue', t.cell(0)).in('habitue', t.cell(1), 2);
+  const top = b.island(15.8, 21.6, 4.8);
+  b.arch(13.6, t.top, 16.6, top, Math.max(t.top, top) + 1.6, ['bois']);
+  const h = b.tower(18.6, top, 1, { roof: 'toit' });
+  b.in('habitue', h.cell(0), 3);
+  b.cage(20.9, top, 'mat');
+  b.relou('habitue', 19, 0, 4);
+  b.clutter(15, 18.2, 0, ['bois']);
   return b.level({
     id: '1-3',
     name: 'La cage',
@@ -43,10 +50,12 @@ function laCage() {
 }
 
 function leMur() {
-  const b = new Build();
-  b.wall(12, 0, 2, 4);
-  const f = b.fort(18, 0, 2, 2, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0)).in('habitue', f.cell(1, 0), 2).in('habitue', f.cell(1, 1), 3);
+  const b = new Build(104);
+  b.in('habitue', b.tower(12.3, 0, 1, { roof: 'creneaux' }).cell(0));
+  b.wall(14.6, 0, 2, 3, 'bois', 0.95);
+  const r = b.tower(20.6, b.ledge(18.4, 25, 1.6), 2, { roof: 'toit' });
+  b.in('habitue', r.cell(0), 2).in('habitue', r.cell(1), 3);
+  b.clutter(22.5, 25, 1.6, ['bois', 'pierre']);
   return b.level({
     id: '1-4',
     name: 'Le mur de caisses',
@@ -56,31 +65,32 @@ function leMur() {
 }
 
 function laColline() {
-  const b = new Build();
-  b.relief([
-    [-10, 0],
-    [6, 0],
-    [9, 2],
-    [19, 2],
-    [21, 4.5],
-    [33, 4.5],
-    [35, 0],
-    [60, 0],
-  ]);
-  const f = b.fort(11.9, 2, 1, 2, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0)).in('habitue', f.cell(0, 1), 2);
-  rubble(b, 13.4, 2, 2, 5);
-  const s = scaffold(b, 26.5, 4.5, 2, 3);
-  b.in('habitue', s.cell(0, 0), 3).in('habitue', s.cell(1, 1)).in('habitue', s.cell(0, 2), 2);
-  b.ball(27.6, s.top, 'bois', 0.9);
+  const b = new Build(105);
+  const a = b.tower(13, b.peak(13, 7, 3.2, 2.2), 2, { roof: 'rien' });
+  b.in('habitue', a.cell(0)).in('habitue', a.cell(1), 2);
+  const c = b.tower(22.5, b.peak(22.5, 8, 3.6, 3.4), 1, { roof: 'rien' });
+  b.in('habitue', c.cell(0), 3);
+  const p = b.arch(14, a.top, 21.5, c.top, Math.max(a.top, c.top) + 1.8, ['bois']);
+  b.relou('habitue', 17.8, p.top, 4);
+  b.clutter(15, 17, p.top, ['bois']).clutter(18.7, 21, p.top, ['bois', 'pierre']);
+  b.relou('habitue', 17.8, 0);
   return b.level({ id: '1-5', name: 'La colline', friends: ['roulian', 'mat', 'mat', 'roulian'] });
 }
 
 function leVideur() {
-  const b = new Build();
-  const c = castle(b, 18, 0, { m: 'bois', wall: 'bois', cols: 2, floors: 1, towers: 2 });
-  b.in('gardien', c.keep.cell(0, 0)).in('habitue', c.keep.cell(1, 0));
-  b.in('habitue', c.left.cell(0, 1), 2).in('habitue', c.right.cell(0, 0), 3);
+  const b = new Build(106);
+  const l = b.tower(13.5, 0, 3, { w: 2.4, roof: 'rien' });
+  b.in('habitue', l.cell(0)).in('habitue', l.cell(2), 2);
+  const k = b.tower(19.6, b.ledge(17.4, 22.4, 2), 2, {
+    w: 3,
+    roof: 'rien',
+    mats: ['bois', 'bois', 'pierre'],
+  });
+  b.in('gardien', k.cell(0)).in('habitue', k.cell(1), 3);
+  const p = b.arch(14.2, l.top, 18.6, k.top, Math.max(l.top, k.top) + 1.4, ['bois', 'pierre']);
+  b.crenels(16.4, p.top, 4, 'bois');
+  b.brace(21.1, 1.4, 1, 0, 1.1);
+  b.in('habitue', b.tower(26, 0, 1, { roof: 'toit' }).cell(0), 4);
   return b.level({
     id: '1-6',
     name: 'Le gardien',
@@ -90,28 +100,16 @@ function leVideur() {
 }
 
 function lesRoues() {
-  const b = new Build();
-  b.relief([
-    [-10, 0],
-    [8, 0],
-    [10, 1.5],
-    [16, 1.5],
-    [18, 0],
-    [24, 0],
-    [26, 3],
-    [34, 3],
-    [36, 0],
-    [60, 0],
-  ]);
-  const a = b.fort(13, 1.5, 1, 3);
-  b.ball(13, a.top, 'bois', 1);
-  b.in('habitue', a.cell(0, 0)).in('habitue', a.cell(0, 2), 2);
-  b.relou('gardien', 21, 0);
-  const s = scaffold(b, 30, 3, 2, 2);
-  b.ball(29, s.top, 'bois', 1);
-  b.ball(31, s.top, 'bois', 1);
-  b.in('habitue', s.cell(0, 0), 3).in('habitue', s.cell(1, 1), 4);
-  b.cage(39, 0, 'tom');
+  const b = new Build(107);
+  const a = b.tower(12.5, b.ledge(10.5, 14.5, 1.5), 2, { roof: 'boule' });
+  b.in('habitue', a.cell(0)).in('habitue', a.cell(1), 2);
+  b.relou('gardien', 17.4, 0);
+  const top = b.island(19.6, 26.4, 6);
+  b.in('habitue', b.tower(23, top, 1, { roof: 'boule' }).cell(0), 3);
+  b.ball(20.4, top, 'bois', 0.9);
+  b.ball(25.6, top, 'pierre', 0.8);
+  b.in('habitue', b.tower(23, 0, 1, { roof: 'rien', w: 2.4 }).cell(0), 4);
+  b.cage(28, 0, 'tom');
   return b.level({
     id: '1-7',
     name: 'Les roues',
@@ -121,11 +119,16 @@ function lesRoues() {
 }
 
 function visionTriple() {
-  const b = new Build();
-  b.in('habitue', b.fort(12, 0, 1, 1).cell(0, 0));
-  b.in('habitue', b.fort(15.8, b.wall(14.8, 0, 2, 1), 1, 1).cell(0, 0), 2);
-  b.in('habitue', b.fort(19.5, 0, 1, 1).cell(0, 0), 3);
-  b.in('habitue', b.fort(23, b.wall(22, 0, 2, 2), 1, 1).cell(0, 0), 4);
+  const b = new Build(108);
+  b.in('habitue', b.tower(12.5, 0, 1, { mats: ['glace', 'bois'], roof: 'toit' }).cell(0));
+  b.in(
+    'habitue',
+    b.tower(17.5, b.peak(17.5, 6, 2.8, 2), 1, { w: 2.4, mats: ['glace'], roof: 'toit' }).cell(0),
+    2,
+  );
+  const top = b.island(21.4, 25.6, 4.4);
+  b.in('habitue', b.tower(23.5, top, 1, { w: 2.4, mats: ['glace', 'bois'], roof: 'cadre' }).cell(0), 3);
+  b.relou('habitue', 23.5, 0, 4);
   return b.level({
     id: '1-8',
     name: 'Vision triple',
@@ -135,38 +138,32 @@ function visionTriple() {
 }
 
 function laTnt() {
-  const b = new Build();
-  rubble(b, 9.5, 0, 2, 21);
-  b.add('tnt', 14.4, 0);
-  const s = scaffold(b, 19, 0, 3, 3);
-  b.put('tnt', s.cell(2, 2));
-  b.in('habitue', s.cell(0, 0)).in('habitue', s.cell(2, 0), 2).in('habitue', s.cell(0, 1), 3);
-  b.in('habitue', s.cell(1, 2), 4);
-  const f = b.fort(26.5, 0, 1, 1, { roof: 'bois' });
-  b.in('habitue', f.cell(0, 0));
-  b.add('tnt', 24.2, 0);
-  return b.level({ id: '1-9', name: 'Boum', friends: ['roulian', 'mat', 'tom'] });
+  const b = new Build(109);
+  const top = b.tunnel(11.5, 18.5, 3.4);
+  const t = b.tower(15, top, 2, { roof: 'rien' });
+  b.in('habitue', t.cell(0)).in('habitue', t.cell(1), 2);
+  b.add('tnt', 15, t.top);
+  b.relou('habitue', 15.6, 0, 3).add('tnt', 14.2, 0);
+  const r = b.tower(22, 0, 2, { roof: 'toit' });
+  b.put('tnt', r.cell(0)).in('habitue', r.cell(1), 4);
+  return b.level({
+    id: '1-9',
+    name: 'Boum',
+    friends: ['roulian', 'mat', 'tom'],
+    tip: 'La TNT saute au premier choc. Celle du tunnel ne se touche qu’en tirant à plat.',
+  });
 }
 
 function lePont() {
-  const b = new Build();
-  b.relief([
-    [-10, 0],
-    [8, 0],
-    [10, 2.5],
-    [16, 2.5],
-    [18, 0],
-    [23, 0],
-    [25, 2.5],
-    [32, 2.5],
-    [34, 0],
-    [60, 0],
-  ]);
-  const p = bridge(b, 13, 28.5, 2.5, 2);
-  b.relou('habitue', 17.5, p.deck).relou('habitue', 23.5, p.deck, 2);
-  b.relou('pilier', 19.8, 0);
-  b.add('tnt', 21.6, 0);
-  b.in('habitue', p.a.cell(0, 0), 3).in('habitue', p.b.cell(0, 1), 4);
+  const b = new Build(110);
+  const a = b.tower(12.5, b.peak(12.5, 7, 3, 2.5), 1, { roof: 'rien' });
+  const c = b.tower(25, b.peak(25, 8, 3.4, 3), 1, { roof: 'rien' });
+  b.in('habitue', a.cell(0)).in('habitue', c.cell(0), 2);
+  const p = b.arch(13.4, a.top, 24.1, c.top, Math.max(a.top, c.top) + 1.2, ['bois', 'pierre']);
+  b.relou('habitue', 16.8, p.top, 3).relou('habitue', 20.8, p.top, 4);
+  b.clutter(17.7, 19.9, p.top, ['bois', 'pierre']);
+  b.relou('pilier', 18.4, 0);
+  b.add('tnt', 20.4, 0);
   return b.level({
     id: '1-10',
     name: 'Le pont',
@@ -176,27 +173,34 @@ function lePont() {
 }
 
 function leChaletPerche() {
-  const b = new Build();
-  const room = stilts(b, 12.5, 0, 3);
-  b.in('habitue', room);
-  const top = b.island(17.5, 25, 5);
-  const c = b.fort(21, top, 2, 1, { roof: 'bois' });
-  b.in('gardien', c.cell(0, 0)).in('habitue', c.cell(1, 0), 2);
-  b.add('tonneau-or', 24.3, top);
-  const s = scaffold(b, 30, 0, 1, 3);
-  b.in('habitue', s.cell(0, 0), 3).in('habitue', s.cell(0, 2));
+  const b = new Build(111);
+  const t = b.tower(12.5, 0, 2, { roof: 'rien', mats: ['bois', 'glace'] });
+  b.in('habitue', t.cell(1));
+  const top = b.island(16.8, 23.6, 5.6);
+  b.arch(13.2, t.top, 17.6, top, Math.max(t.top, top) + 1.8, ['bois']);
+  b.in('gardien', b.tower(20.4, top, 1, { w: 3, roof: 'toit' }).cell(0));
+  b.add('tonneau-or', 22.9, top);
+  b.wall(18.6, 0, 1, 2, 'pierre', 0.8);
+  b.relou('habitue', 20.4, 0, 2);
+  const r = b.tower(28.5, b.peak(28.5, 7, 3.8, 2), 2, { roof: 'toit' });
+  b.in('habitue', r.cell(0), 3).in('habitue', r.cell(1), 4);
   return b.level({ id: '1-11', name: 'Le chalet perché', friends: ['tom', 'mat', 'roulian', 'mat'] });
 }
 
 function leFort() {
-  const b = new Build();
-  rubble(b, 9.5, 0, 3, 7);
-  const c = castle(b, 23, 0, { m: 'bois', wall: 'bois', cols: 3, floors: 2, towers: 3 });
-  b.in('pilier', c.keep.cell(1, 0)).put('tnt', c.keep.cell(2, 0));
-  b.in('habitue', c.keep.cell(0, 0)).in('habitue', c.keep.cell(0, 1), 2).in('gardien', c.keep.cell(2, 1));
-  b.in('gardien', c.left.cell(0, 0)).in('habitue', c.left.cell(0, 2), 3);
-  b.in('habitue', c.right.cell(0, 1), 4);
-  b.cage(35.5, 0, 'jbm');
+  const b = new Build(112);
+  b.wall(9.6, 0, 2, 1, 'bois', 0.9);
+  const l = b.tower(14, 0, 3, { w: 2.6, roof: 'rien' });
+  b.in('gardien', l.cell(0)).in('habitue', l.cell(2));
+  const k = b.tower(23, b.ledge(19, 27, 2.2), 2, { w: 3.2, h: 2, roof: 'rien', mats: ['bois', 'pierre'] });
+  b.in('pilier', k.cell(0)).in('habitue', k.cell(1), 2);
+  const p = b.arch(14.9, l.top, 21.8, k.top, Math.max(l.top, k.top) + 1.3, ['bois', 'pierre']);
+  b.relou('habitue', 18.4, p.top, 3);
+  b.clutter(15.6, 17.6, p.top, ['bois', 'pierre']);
+  b.crenels(24.1, k.top, 1.4, 'pierre');
+  b.cage(26.1, 2.2, 'jbm');
+  const r = b.tower(30.5, 0, 2, { roof: 'creneaux' });
+  b.put('tnt', r.cell(0)).in('habitue', r.cell(1), 4);
   return b.level({
     id: '1-12',
     name: 'Le fort du camping',

@@ -85,20 +85,20 @@ const SCENES: Record<PowerId, Scene> = {
 
 /** Tirs de démonstration (trouvés par le solveur : npm run demos). */
 const SHOTS: Record<PowerId, Demo['shot']> = {
-  none: { deg: 63, pw: 0.55 },
-  dash: { deg: 3, pw: 0.9, at: 0.2 },
-  triple: { deg: 15, pw: 0.6, at: 0.5 },
-  blast: { deg: 15, pw: 0.8, at: 0.4 },
-  slam: { deg: 30, pw: 0.8, at: 0.7 },
-  freeze: { deg: 6, pw: 0.7, at: 0.3 },
-  jump: { deg: 0, pw: 0.9, at: 0.2 },
-  spin: { deg: 3, pw: 0.9, at: 0.2 },
+  none: { deg: 9, pw: 0.9 },
+  dash: { deg: 6, pw: 0.9, at: 0.3 },
+  triple: { deg: 6, pw: 0.9, at: 0.3 },
+  blast: { deg: 18, pw: 0.6, at: 0.5 },
+  slam: { deg: 36, pw: 0.8, at: 0.7 },
+  freeze: { deg: 3, pw: 0.8, at: 0.3 },
+  jump: { deg: 9, pw: 0.75, at: 0.3 },
+  spin: { deg: 12, pw: 0.75, at: 0.2 },
   smash: { deg: 0, pw: 0.45, at: 0.2 },
-  levitate: { deg: 15, pw: 0.55, at: 0.7 },
-  pet: { deg: 27, pw: 0.55, at: 0.4 },
+  levitate: { deg: 0, pw: 0.45, at: 0.4 },
+  pet: { deg: 30, pw: 0.45, at: 0.9 },
   beam: { deg: 0, pw: 0.7, at: 0.2 },
-  puck: { deg: 63, pw: 0.7, at: 0.8 },
-  fireball: { deg: 33, pw: 0.55, at: 1.2 },
+  puck: { deg: 63, pw: 0.6, at: 1 },
+  fireball: { deg: 30, pw: 0.55, at: 1.2 },
 };
 
 /** La démonstration du pouvoir d'un ami. */

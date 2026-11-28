@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ALL_LEVELS, UNLOCKS, STARTERS } from '../src/levels';
 import { FRIENDS, FRIEND_BY_ID } from '../src/sim/defs';
 import { createSim } from '../src/sim/sim';
+import { unreachable } from './reach';
 
 describe('niveaux', () => {
   for (const level of ALL_LEVELS) {
@@ -20,6 +21,10 @@ describe('niveaux', () => {
       const enemies = sim.ents.filter((e) => e.kind === 'enemy');
       level.enemies.forEach((it, i) => check(it.k, it.x, it.y, enemies[i]!));
       expect(off).toEqual([]);
+    });
+
+    it(`${level.id} : chaque relou est atteignable`, () => {
+      expect(unreachable(level)).toEqual([]);
     });
 
     it(`${level.id} : tient debout sans tir`, () => {

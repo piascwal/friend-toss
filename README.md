@@ -83,12 +83,30 @@ relancer la publication du jeu (onglet **Actions**, **Run workflow**).
 5 mondes de 12 niveaux. Chaque monde apprend une ou deux mécaniques, les combine sur du relief
 (collines, falaises, gradins, îlots flottants, grottes), puis finit par une grande forteresse ou un boss.
 
-Hors premiers niveaux et niveaux qui présentent un pouvoir, les constructions sont composées :
-châteaux crénelés, échafaudages hauts et fragiles, éboulis, ponts entre deux tours, cabanes sur
-pilotis. Certaines appellent un pouvoir plutôt qu'un autre, sans l'imposer : une **cheminée** (relou au
-fond d'un puits) pour LOLO, le palet de MAR-1 ou le smash de RORO ; un relou **derrière un mur** ou une
-dune pour SOSO ; une **grotte** ou un long étage pour INDIANNE ; des relous **alignés** derrière du bois
-pour BUBU ; un **phare** étroit pour les ricochets d'ELO ; des **serres** de glace pour TOM.
+Dès le niveau 1-2, les constructions sont composées, à la façon des jeux de lancer : relief de terre
+(pics, buttes, îlots flottants effilés, abris sous roche), tours d'étages aux poteaux faits de
+morceaux mêlés (bois, glace, pierre, cadres creux, cales un peu plus fines), dalles de toutes
+épaisseurs, ponts et arches qui relient le sol, une butte et le haut d'une tour, créneaux, toits,
+boules calées, bric-à-brac dans les pièces et sur les ponts. Le décor est écrit à taille « modèle »
+puis agrandi (`SCALE` dans `src/sim/constants.ts`) : structures et relous sont grands à côté du canon.
+
+### Règles de conception d'un niveau
+
+- **Toujours finissable** : chaque relou doit pouvoir être touché par une ligne droite venue du ciel
+  ou de la gauche sans traverser la terre ni un objet incassable (pneus). Jamais de relou enfermé
+  dans le relief ou dans de l'incassable ; un abri sous roche est ouvert côté canon. Vérifié par
+  `npm test` (« chaque relou est atteignable ») ; `npm run solve` vérifie qu'un joueur gagne.
+- **Pas de victoire en un tir garantie** : les relous sont répartis sur plusieurs ensembles (une butte,
+  un îlot, le pied d'une tour, un pont), séparés par du relief.
+- **Un passage pour un pouvoir, sans l'imposer** : une **cheminée** ou un creux entre deux pics
+  (relou au fond) pour LOLO, le palet de MAR-1 ou le smash de RORO ; un relou **derrière une dune** ou
+  un mur pour SOSO ; un **abri sous roche** ou un long étage pour INDIANNE et la boule de feu de JBG ;
+  des relous **alignés** derrière du bois ou de la glace pour BUBU ; des pièces fermées ou un **phare**
+  étroit pour les ricochets d'ELO ; de la glace pour TOM ; du bois à transpercer pour MAT ; un
+  **bunker** au ras du sol pour le chien de CLEM ; de la pierre et du métal pour ROULIE ; des relous
+  serrés pour la paume de JBM. On varie la forme d'un niveau à l'autre.
+- **Stable sans tir** : rien ne bouge tant qu'on ne tire pas (`npm test`). Les tours posées sur un pic
+  ou une butte tiennent sur son dessus plat ; une arche s'appuie sur des dalles, jamais sur un toit.
 
 1. **Le Camping** : bois, étages, roues, TNT, collines.
 2. **Le Festival** : barils et TNT, glace, enceintes en métal, gradins ; boss **DJ Boucle**.
@@ -133,7 +151,7 @@ src/sim/                 simulation (sans navigateur)
   sim.ts                 un niveau en cours : tir, dégâts, explosions, score, victoire
   powers.ts              les pouvoirs des amis (une fonction par pouvoir)
 src/levels/              les niveaux : un fichier par monde, l'outil de construction (build.ts),
-                         les morceaux de décor prêts à poser (pieces.ts), les mini-scènes de
+                         les morceaux de décor pensés pour un pouvoir (pieces.ts), les mini-scènes de
                          démonstration des pouvoirs (demos.ts)
 src/render/              affichage canvas
   view.ts                coordonnées monde ↔ écran, dessin des images
@@ -156,9 +174,12 @@ tests/                   niveaux bien construits ; solveur (tests/solve/)
 Dans le fichier de son monde (`src/levels/<monde>.ts`), une fonction construit le niveau avec `Build`, module par module : blocs,
 poutres et poteaux épais, ronds, toits, cadres creux, créneaux, pièces, forteresses (`fort`, avec des
 cases pour loger les relous), murs, pyramides, dominos, relief (`relief`), plateformes et îlots
-flottants (`island`). `pieces.ts` assemble ces modules en morceaux plus grands et paramétrables
-(`castle`, `scaffold`, `chimney`, `stilts`, `rubble`, `bridge`, `cave`, `bunker`, `greenhouse`) :
-varier leurs tailles, matériaux et graines plutôt que recopier la même forme (positions en mètres,
+flottants (`island`), rochers (`rock`, `peak`, `ledge`, `tunnel`), et surtout des modules variés
+tirés d'une graine propre au niveau (`new Build(graine)`) : `tower` (étages à une ou plusieurs pièces,
+bric-à-brac, toit au choix), `arch` (pont entre deux appuis de hauteurs différentes), `clutter`
+(objets en vrac), `beam` et `brace` (poutres en biais). `pieces.ts` garde trois morceaux pensés
+pour un pouvoir (`chimney`, `stilts`, `bunker`). Varier les graines, tailles et matériaux plutôt que
+recopier la même forme (positions en mètres,
 `x = 0` à 2 m devant le canon, `y` = bas de la pièce), puis on l'ajoute à son monde. `npm test` vérifie que la
 structure tient debout, `npm run solve` qu'elle est gagnable.
 

@@ -42,12 +42,45 @@ export interface LevelDef {
   items: ItemDef[];
   enemies: EnemyPlace[];
   ground?: Ground[];
+  /** Rochers de terre de toutes formes (pics, arches, îlots) : polygones fermés, points (x, y). */
+  rocks?: [number, number][][];
   /** Relief du sol : points (x, y) de gauche à droite ; plat (y = 0) par défaut. */
   terrain?: [number, number][];
   /** Ce qu'apprend le niveau (affiché au début). */
   tip?: string;
   /** Seuils de 2 et 3 étoiles (sinon calculés). */
   stars?: [number, number];
+}
+
+/**
+ * Contour d'un rocher prêt à dessiner et à simuler : polygone fermé aux angles arrondis
+ * (arc de 0,45 m au plus).
+ */
+export function rockOutline(pts: [number, number][]): [number, number][] {
+  const out: [number, number][] = [];
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const [ax, ay] = pts[(i + n - 1) % n]!;
+    const [px, py] = pts[i]!;
+    const [bx, by] = pts[(i + 1) % n]!;
+    const la = Math.hypot(ax - px, ay - py);
+    const lb = Math.hypot(bx - px, by - py);
+    const d = Math.min(0.45, la / 2.2, lb / 2.2);
+    const p1: [number, number] = [px + ((ax - px) / la) * d, py + ((ay - py) / la) * d];
+    const p2: [number, number] = [px + ((bx - px) / lb) * d, py + ((by - py) / lb) * d];
+    for (let k = 0; k <= 4; k++) {
+      const t = k / 4;
+      const u = 1 - t;
+      out.push([
+        u * u * p1[0] + 2 * u * t * px + t * t * p2[0],
+        u * u * p1[1] + 2 * u * t * py + t * t * p2[1],
+      ]);
+    }
+  }
+  return out.filter((p, i) => {
+    const q = out[(i + out.length - 1) % out.length]!;
+    return Math.hypot(p[0] - q[0], p[1] - q[1]) > 0.02;
+  });
 }
 
 /**

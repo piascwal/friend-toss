@@ -1,5 +1,5 @@
 /* Le décor : ciel et lointains (petit canevas en gros pixels), sol en relief arrondi, plateformes. */
-import { terrainSurface, type LevelDef, type Theme } from '../sim/level';
+import { rockOutline, terrainSurface, type LevelDef, type Theme } from '../sim/level';
 import { TEX } from './pixels';
 import { drawSky, SKY_DIV } from './sky';
 import { groundTile } from './textures';
@@ -10,6 +10,7 @@ export class Scenery {
   private sky = document.createElement('canvas');
   private skyCtx = this.sky.getContext('2d')!;
   private surface: [number, number][] = [];
+  private rocks: [number, number][][] = [];
 
   constructor(
     private view: View,
@@ -17,6 +18,7 @@ export class Scenery {
     private theme: Theme,
   ) {
     this.surface = terrainSurface(level);
+    this.rocks = (level.rocks ?? []).map(rockOutline);
   }
 
   /** Ciel et collines : dessinés à résolution réduite, puis agrandis (pixels un peu gros). */
@@ -56,6 +58,65 @@ export class Scenery {
       art.topLight,
     );
     for (const g of this.level.ground ?? []) this.drawPlatform(g.x0, g.x1, g.top, g.bottom ?? -1);
+    for (const r of this.rocks) this.drawRock(r);
+  }
+
+  /** Rocher (pic, arche, îlot) : terre, contour sombre, et bande d'herbe sur les faces tournées vers le ciel. */
+  private drawRock(pts: [number, number][]) {
+    const v = this.view;
+    const ctx = v.ctx;
+    const art = THEMES[this.theme];
+    ctx.beginPath();
+    for (const [x, y] of pts) ctx.lineTo(v.sx(x), v.sy(y));
+    ctx.closePath();
+    ctx.fillStyle = this.pattern();
+    ctx.fill();
+    // ombre du dessous : la terre fonce vers le bas
+    const ys = pts.map((p) => p[1]);
+    const g = ctx.createLinearGradient(0, v.sy(Math.max(...ys)), 0, v.sy(Math.min(...ys)));
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = Math.max(2, v.cam.s * 0.08);
+    ctx.stroke();
+    // faces du dessus (pente de moins de 50°), regroupées en traits continus
+    const n = pts.length;
+    const up = (i: number) => {
+      const [ax, ay] = pts[i]!;
+      const [bx, by] = pts[(i + 1) % n]!;
+      const len = Math.hypot(bx - ax, by - ay);
+      // contour parcouru dans un sens ou dans l'autre : le dessus est la face dont rien n'est au-dessus
+      return len > 0 && Math.abs(by - ay) / len < 0.77 && this.openAbove(pts, (ax + bx) / 2, (ay + by) / 2);
+    };
+    this.edge(
+      () => {
+        let open = false;
+        for (let i = 0; i < n; i++) {
+          if (up(i)) {
+            if (!open) ctx.moveTo(v.sx(pts[i]![0]), v.sy(pts[i]![1]));
+            const [bx, by] = pts[(i + 1) % n]!;
+            ctx.lineTo(v.sx(bx), v.sy(by));
+            open = true;
+          } else open = false;
+        }
+      },
+      art.top,
+      art.topLight,
+    );
+  }
+
+  /** Le point (x, y) d'un bord est-il à l'air libre juste au-dessus (pas de rocher dans les 5 cm) ? */
+  private openAbove(pts: [number, number][], x: number, y: number) {
+    let inside = false;
+    const py = y + 0.05;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i]!;
+      const [xj, yj] = pts[j]!;
+      if (yi > py !== yj > py && x < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return !inside;
   }
 
   /** Plateforme (estrade, falaise, îlot, plafond de roche) : bloc de terre aux coins arrondis. */

@@ -1,8 +1,9 @@
 /* Construction d'un niveau dans le monde physique : sol (relief et plateformes), objets, relous,
    paires de téléporteurs. */
 import { Box, Chain, Circle, Polygon, Vec2 } from 'planck';
+import { SCALE } from './constants';
 import { ENEMIES, FRAME, MATS, OBJECTS, type EnemyDef, type EnemyKind, type ObjDef } from './defs';
-import { terrainSurface, type ItemDef } from './level';
+import { rockOutline, terrainSurface, type ItemDef } from './level';
 import { chamfered } from './shapes';
 import type { Sim } from './sim';
 
@@ -32,6 +33,14 @@ function buildGround(sim: Sim) {
     const hh = (g.top - bottom) / 2;
     ground.createFixture({ shape: new Box(hw, hh, new Vec2(g.x0 + hw, bottom + hh), 0), friction: 0.9 });
   }
+  for (const r of sim.level.rocks ?? [])
+    ground.createFixture({
+      shape: new Chain(
+        rockOutline(r).map(([x, y]) => new Vec2(x, y)),
+        true,
+      ),
+      friction: 0.9,
+    });
   ground.setUserData(null);
 }
 
@@ -53,7 +62,8 @@ function addItem(sim: Sim, item: ItemDef) {
   });
   const special = def.special;
   const fixture = {
-    density: def.density ?? mat.density,
+    // objet agrandi par le niveau (SCALE) : même masse qu'à taille modèle
+    density: (def.density ?? mat.density) / (SCALE * SCALE),
     friction: mat.friction,
     restitution: mat.restitution,
     isSensor: special?.type === 'portal',
@@ -86,14 +96,17 @@ function addItem(sim: Sim, item: ItemDef) {
 
 function addEnemy(sim: Sim, k: EnemyKind, x: number, y: number, variant: number) {
   const def = ENEMIES[k] as EnemyDef;
-  const body = sim.world.createBody({ type: 'dynamic', position: new Vec2(x, y + def.h / 2) });
+  // relous à l'échelle du décor (SCALE), avec la même masse qu'à taille modèle
+  const w = def.w * SCALE;
+  const h = def.h * SCALE;
+  const body = sim.world.createBody({ type: 'dynamic', position: new Vec2(x, y + h / 2) });
   body.createFixture({
-    shape: chamfered(def.w, def.h, 0.12),
-    density: def.density ?? 1,
+    shape: chamfered(w, h, 0.12),
+    density: (def.density ?? 1) / (SCALE * SCALE),
     friction: 0.8,
     restitution: 0.1,
   });
-  const ent = sim.addEnt('enemy', body, def.w, def.h, 'box', 'enemy', def.hp);
+  const ent = sim.addEnt('enemy', body, w, h, 'box', 'enemy', def.hp);
   ent.enemy = k;
   ent.enemyDef = def;
   ent.variant = variant;

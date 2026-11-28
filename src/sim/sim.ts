@@ -11,6 +11,8 @@ import {
   FRIEND_DMG,
   GRAVITY,
   IMP_MIN,
+  RESTING,
+  SCALE,
   IMP_MIN_ENEMY,
   KILL_SCORE,
   muzzle,
@@ -197,8 +199,14 @@ export class Sim {
     if (!this.damageOn) return;
     const imp = normals.reduce((s, n) => s + n, 0);
     if (imp < IMP_MIN_ENEMY) return;
-    const a = c.getFixtureA().getBody().getUserData() as Ent | null;
-    const b = c.getFixtureB().getBody().getUserData() as Ent | null;
+    const ba = c.getFixtureA().getBody();
+    const bb = c.getFixtureB().getBody();
+    // une charge posée (deux corps presque immobiles l'un sur l'autre) n'est pas un choc : une tour
+    // lourde ne s'écrase pas toute seule
+    const rel = Vec2.sub(ba.getLinearVelocity(), bb.getLinearVelocity()).length();
+    if (rel < RESTING) return;
+    const a = ba.getUserData() as Ent | null;
+    const b = bb.getUserData() as Ent | null;
     const wm = c.getWorldManifold(null);
     const pt = wm?.points[0] ?? c.getFixtureA().getBody().getPosition();
     if (a) this.hits.push({ a, b, imp, x: pt.x, y: pt.y });
@@ -357,6 +365,7 @@ export class Sim {
     source: Ent | null,
     confetti = false,
   ) {
+    r *= SCALE; // le souffle suit l'échelle du décor
     this.events.push({ t: 'explode', x, y, r, confetti });
     for (const e of this.ents) {
       if (e.dead || e === source) continue;
