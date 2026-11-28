@@ -40,8 +40,8 @@ function laCage() {
   const t = b.tower(g.mid, g.y, 2, { roof: 'rien' });
   b.in('habitue', t.cell(0)).in('habitue', t.cell(1), 2);
   const top = b.island(15.8, 21.6, 5.6);
-  b.arch(g.mid + 0.6, t.top, 16.6, top, Math.max(t.top, top) + 1.6, ['bois']);
-  const h = b.tower(18.6, top, 1, { roof: 'toit' });
+  b.arch(g.mid + 0.6, t.top, 16.4, top, Math.max(t.top, top) + 1.6, ['bois']);
+  const h = b.tower(18.9, top, 1, { w: 2.6, roof: 'toit' });
   b.in('habitue', h.cell(0), 3);
   b.cage(20.9, top, 'mat');
   b.relou('habitue', 19.8, 0, 4);

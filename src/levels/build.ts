@@ -6,7 +6,7 @@ import { SCALE } from '../sim/constants';
 import type { EnemyPlace, Ground, ItemDef, LevelDef } from '../sim/level';
 
 /** Épaisseur des poutres et poteaux (m) : des modules bien épais, façon jeu de construction. */
-export const T = 0.45;
+export const T = 0.55;
 
 /** Pièce standard : assez large et haute pour le plus gros relou. */
 export const ROOM_W = 2.4;
@@ -173,7 +173,7 @@ export class Build {
    * Rampe : une poutre penchée qui part du sol (ou d'un palier) en `xg` et vient s'appuyer sur le
    * coin d'un rocher ou d'un îlot, en (xr, yr). Elle relie la structure au relief.
    */
-  ramp(xg: number, xr: number, yr: number, m: M = 'bois', th = 0.35): this {
+  ramp(xg: number, xr: number, yr: number, m: M = 'bois', th = 0.45): this {
     const up = xr > xg;
     return up
       ? this.beam(xg, this.groundAt(xg), xr + 0.25, yr + 0.05, m, th)
@@ -405,7 +405,7 @@ export class Build {
   /* ------------------------------------------------------------ modules variés */
 
   /** Poutre en biais posée de (x0, y0) à (x1, y1) : son dessous touche ces deux points. */
-  beam(x0: number, y0: number, x1: number, y1: number, m: M = 'bois', th = 0.35): this {
+  beam(x0: number, y0: number, x1: number, y1: number, m: M = 'bois', th = 0.45): this {
     const a = (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI;
     this.items.push({
       k: BOX[m],
@@ -451,11 +451,11 @@ export class Build {
     fill = true,
     rooms = 1,
   ): Storey {
-    const pw = this.rand(0.4, 0.65);
+    const pw = this.rand(0.5, 0.75);
     const all = rooms * w - (rooms - 1) * pw;
     const x0 = x - all / 2;
     for (let i = 0; i <= rooms; i++) this.column(x0 + pw / 2 + i * (w - pw), y, h, pw, mats);
-    const th = this.pick([0.35, 0.45, 0.55, 0.65]);
+    const th = this.pick([0.45, 0.55, 0.65, 0.75]);
     const top = this.block(x, y + h, this.pick(slab), all + this.rand(0, 0.7), th);
     const cells = Array.from({ length: rooms }, (_, i) => {
       const cx = x0 + w / 2 + i * (w - pw);
@@ -511,8 +511,8 @@ export class Build {
    * côté `side` (1 : à droite de la face en `xFace`, -1 : à gauche), qui touche la face à `yTop`.
    */
   brace(xFace: number, yTop: number, side: 1 | -1, y0: number, run = 1, m: M = 'bois'): this {
-    if (side === 1) return this.beam(xFace, yTop, xFace + run, y0, m, 0.3);
-    return this.beam(xFace - run, y0, xFace, yTop, m, 0.3);
+    if (side === 1) return this.beam(xFace, yTop, xFace + run, y0, m, 0.4);
+    return this.beam(xFace - run, y0, xFace, yTop, m, 0.4);
   }
 
   /**
@@ -546,7 +546,7 @@ export class Build {
       this.block(x - d / 2 - 0.13, top, m, 0.25, 0.3);
       this.block(x + d / 2 + 0.13, top, m, 0.25, 0.3);
       top = this.ball(x, top, m === 'glace' ? 'pierre' : m, d);
-    } else if (roof === 'creneaux') top = this.crenels(x, top, w * 0.85, m, 0.45);
+    } else if (roof === 'creneaux') top = this.crenels(x, top, w * 0.85, m, 0.55);
     else if (roof === 'cadre') top = this.frame(x, top, m, this.rand(0.7, 1));
     return { top, cells, cell: (f, i = 0) => rooms[f]![i]! };
   }
@@ -557,10 +557,10 @@ export class Build {
    * Renvoie le haut et la case au sol du côté gauche.
    */
   arch(x0: number, y0: number, x1: number, y1: number, top: number, mats: M[], slab: M[] = mats): Storey {
-    const pw = this.rand(0.4, 0.6);
+    const pw = this.rand(0.5, 0.7);
     this.column(x0, y0, top - y0, pw, mats);
     this.column(x1, y1, top - y1, pw, mats);
-    const th = this.pick([0.35, 0.45, 0.55]);
+    const th = this.pick([0.45, 0.55, 0.65]);
     const end = this.block((x0 + x1) / 2, top, this.pick(slab), x1 - x0 + pw + this.rand(0.1, 0.6), th);
     return { top: end, cell: { x: (x0 + x1) / 2, y: Math.max(y0, y1) } };
   }

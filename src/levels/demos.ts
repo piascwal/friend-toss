@@ -87,10 +87,10 @@ const SCENES: Record<PowerId, Scene> = {
 const SHOTS: Record<PowerId, Demo['shot']> = {
   none: { deg: 9, pw: 0.9 },
   dash: { deg: 6, pw: 0.9, at: 0.3 },
-  triple: { deg: 6, pw: 0.9, at: 0.3 },
+  triple: { deg: 69, pw: 0.6, at: 0.4 },
   blast: { deg: 18, pw: 0.6, at: 0.5 },
   slam: { deg: 36, pw: 0.8, at: 0.7 },
-  freeze: { deg: 3, pw: 0.8, at: 0.3 },
+  freeze: { deg: 15, pw: 0.65, at: 0.3 },
   jump: { deg: 9, pw: 0.75, at: 0.3 },
   spin: { deg: 12, pw: 0.75, at: 0.2 },
   smash: { deg: 0, pw: 0.45, at: 0.2 },

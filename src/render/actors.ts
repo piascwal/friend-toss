@@ -3,7 +3,8 @@
 import { enemyFrame, pic, pose, spritePath, type Mood } from '../assets';
 import type { Ent } from '../sim/entity';
 import type { Effects } from './effects';
-import { blockTexture, overlay, tntTexture } from './textures';
+import { blockTexture } from './blocks';
+import { overlay, tntTexture } from './textures';
 import type { View } from './view';
 
 /** Usure d'un objet : 0 intact, 1 fissuré, 2 très abîmé. */
